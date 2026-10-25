@@ -105,7 +105,7 @@ version = {file = "verl/version/version"}
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["verl", "verl.*", "perception", "perception.*", "perception_2", "perception_2.*"]
+include = ["verl", "verl.*", "mira", "mira.*"]
 exclude = ["*.__pycache__", "*.__pycache__.*"]
 namespaces = true
 
@@ -121,9 +121,5 @@ verl = [
   "**/*.json",
   "**/*.jinja",
 ]
-perception = ["configs/*.yaml", "scripts/*.sh", "*.sh"]
-"perception.utils" = ["*.json"]
-"perception.training" = ["*.sh"]
-"perception.evaluation" = ["*.sh"]
-perception_2 = ["configs/*.yaml", "configs/*.sh", "configs/*.env", "scripts/**/*.sh", "*.sh"]
-"perception_2.utils" = ["*.json"]
+mira = ["**/*.json", "**/*.yaml", "**/*.sh", "**/*.env"]
+"*" = ["*.json", "*.yaml", "*.sh", "*.env"]

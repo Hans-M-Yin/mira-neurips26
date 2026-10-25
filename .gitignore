@@ -45,16 +45,18 @@ metrics/
 /Final_no_correction_FINAL*.pdf
 /_experiments/
 /synthesis/ignore/
+/preprocessed_dataset/
+/_preprocessed_dataset/
 
 # Only preprocessing source is public; data and generated metadata stay local.
-/_preprocessed_dataset/*
-!/_preprocessed_dataset/*.py
-!/_preprocessed_dataset/README.md
+/mira/data/preparation/*
+!/mira/data/preparation/*.py
+!/mira/data/preparation/README.md
 
 # JSON outputs stay private. The following small JSON files are static config.
 *.json
-!perception/utils/triggers.json
-!perception_2/utils/triggers.json
+!mira/configs/triggers.json
+!mira/legacy/revised/utils/triggers.json
 !examples/sglang_multiturn/config/tool_config/mcp_server.json
 !tests/workers/rollout/resource/tool_configs/mcp_server.json
 !tests/special_e2e/ppo_trainer/expert_parallel/qwen3moe_minimal.json

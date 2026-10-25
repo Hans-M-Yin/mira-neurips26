@@ -66,7 +66,7 @@ from verl.utils.tracking import ValidationGenerationsLogger
 from verl.workers.config import FSDPEngineConfig
 from verl.workers.utils.padding import left_right_2_no_padding, no_padding_2_padding
 
-from perception.utils.utils import init_triggers, add_correction_trigger
+from mira.training.triggers import init_triggers, add_correction_trigger
 
 import logging
 logger = logging.getLogger(__name__)

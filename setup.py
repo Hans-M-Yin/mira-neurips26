@@ -82,7 +82,7 @@ setup(
     package_dir={"": "."},
     packages=find_namespace_packages(
         where=".",
-        include=["verl", "verl.*", "perception", "perception.*", "perception_2", "perception_2.*"],
+        include=["verl", "verl.*", "mira", "mira.*"],
         exclude=["*.__pycache__", "*.__pycache__.*"],
     ),
     url="https://github.com/volcengine/verl",
@@ -95,8 +95,8 @@ setup(
     package_data={
         "": ["version/*"],
         "verl": ["py.typed", "version/*", "**/*.yaml", "**/*.json", "**/*.jinja"],
-        "perception": ["**/*.json", "**/*.yaml", "**/*.sh"],
-        "perception_2": ["**/*.json", "**/*.yaml", "**/*.sh", "**/*.env"],
+        "mira": ["**/*.json", "**/*.yaml", "**/*.sh", "**/*.env"],
+        "*": ["*.json", "*.yaml", "*.sh", "*.env"],
     },
     include_package_data=True,
     long_description=long_description,

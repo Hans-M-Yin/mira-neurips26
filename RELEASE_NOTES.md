@@ -5,10 +5,31 @@ files under `verl/` are present. It also includes framework tests, examples, Doc
 definitions, utilities, installation metadata, documentation, MIRA training code,
 and data-preparation source.
 
-The PPO trainer's dependency on `perception.utils.utils` is included, together with
+The PPO trainer's dependency on `mira.training.triggers` is included, together with
 the reflection-trigger JSON files. Computation and logging code for training metrics
 remains part of the framework. The release can be installed directly from this
 checkout; it does not require applying fragments to another VERL revision.
+
+## Source organization
+
+The current paper implementation is organized under `mira/training`, `mira/rewards`,
+`mira/data`, `mira/evaluation`, and `mira/configs`. The earlier development directories
+have been moved into `mira/legacy/initial` and `mira/legacy/revised`; see their README
+for the development history. All source files from the preceding release are retained,
+and all 458 framework files remain present.
+
+Training imports and launcher paths follow the current package layout. The Qwen3
+format adapter imports the shared correction reward directly. Module-style and
+direct-file evaluation commands are both supported. Moving these files does not
+change the reward, sampler, or trigger function bodies.
+
+## Software environment observed during packaging
+
+The local packaging/validation environment uses Python 3.11, PyTorch 2.8.0,
+Transformers 4.57.3, vLLM 0.11.0, Ray 2.54.0, and TensorDict 0.10.0. These versions
+describe the environment inspected for this release; they are not a historical
+lockfile for every paper experiment. Select compatible CUDA and optional backend
+builds as described in the included installation documentation.
 
 ## Files excluded from public source control
 
