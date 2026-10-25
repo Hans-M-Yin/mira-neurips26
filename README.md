@@ -207,7 +207,12 @@ Other [`judge_*.py` scripts](mira/evaluation) provide the corresponding benchmar
 
 ## Model and data availability
 
-Trained MIRA weights and prepared training/validation data are distributed separately from the source code; public download links have not yet been published in this repository. Dataset and model access terms are governed by their providers.
+| Artifact | Hugging Face repository | Access |
+|---|---|---|
+| MIRA Qwen2.5-VL-7B checkpoint | [hansQAQ/checkpoint-main-private](https://huggingface.co/hansQAQ/checkpoint-main-private) | Private |
+| Training data archive | [hansQAQ/dataset-archive-private](https://huggingface.co/datasets/hansQAQ/dataset-archive-private) | Private |
+
+Both repositories are currently private and require an authorized Hugging Face account. The main training file is `training/main_augmented/train.parquet` in the data archive. Dataset and model access terms are governed by their providers.
 
 Full experiment JSON/JSONL, predictions, metrics records, logs, checkpoints, datasets, and credentials are excluded from public source control. See the [release notes](RELEASE_NOTES.md) and [file manifest](RELEASE_MANIFEST.txt) for the release scope.
 
