@@ -1,5 +1,5 @@
 ENGINE=${1:-vllm}
-# 两处改动：去掉KL loss， sample改成8
+# Disable KL loss and use eight rollouts per sample.
 VLLM_USE_V1=1 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     data.train_files="${TRAIN_FILE:?Set TRAIN_FILE to the training parquet}" \

@@ -12,7 +12,7 @@ Pipeline
 
 The output directory contains a ``dataset/`` saved with
 ``datasets.Dataset.save_to_disk``; pass that directory to
-``data_preprocess_v2.py --dataset_path OUTPUT_DIR/dataset``. It also contains
+``build_training_data.py --dataset_path OUTPUT_DIR/dataset``. It also contains
 ``selected.parquet`` for inspection. The canonical ``problem`` field
 contains exactly one ``<image>`` placeholder per stored image.  During rollout,
 however, images are passed as structured chat-template content; do not manually
@@ -131,7 +131,7 @@ def strip_image_placeholders(text: str) -> str:
 
 
 def canonical_problem(text: str, num_images: int) -> str:
-    """The raw schema consumed by data_preprocess_v2: N explicit placeholders."""
+    """The raw schema consumed by build_training_data: N explicit placeholders."""
     return ("<image>\n" * num_images + strip_image_placeholders(text)).strip()
 
 
@@ -360,7 +360,7 @@ def write_final_dataset(
             print(f"[skip final write] {key}: {type(exc).__name__}: {exc}")
             continue
         final_rows.append({
-            # data_preprocess_v2 consumes these three raw fields.
+            # build_training_data consumes these three raw fields.
             "problem": source["problem"],
             "answer": source["answer"],
             "images": source["images"],
@@ -393,7 +393,7 @@ def write_final_dataset(
             "seed": args.seed,
         }, file, indent=2, ensure_ascii=False)
     print(f"Saved {len(dataset)} selected samples to {output_dir / 'dataset'}")
-    print("Next step: python mira/data/preparation/data_preprocess_v2.py --dataset_path " f"{output_dir / 'dataset'} ...")
+    print("Next step: python mira/data/preparation/build_training_data.py --dataset_path " f"{output_dir / 'dataset'} ...")
 
 
 def main() -> None:

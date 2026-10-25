@@ -96,7 +96,7 @@ def setup_logger(name, log_file=None, level=logging.INFO):
     logger.addHandler(console_handler)
     if log_file:
         Path(log_file).parent.mkdir(parents=True, exist_ok=True)
-        # 使用 'w' 模式覆盖原有日志文件，实现清空效果
+        # Open in write mode to clear the previous log.
         file_handler = logging.FileHandler(log_file, encoding='utf-8', mode='w')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

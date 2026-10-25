@@ -88,6 +88,6 @@ VLLM_USE_V1=1 python3 -m verl.trainer.main_ppo \
     +trainer.trigger_file_path=$TRIGGER_FILE \
     trainer.validation_data_dir="${ROLLOUT_SAVE_PATH}/val" \
     trainer.rollout_data_dir="${ROLLOUT_SAVE_PATH}/train" \
-    custom_reward_function.path=mira/legacy/revised/reward_function_loop_qwen3_boom.py \
+    custom_reward_function.path=mira/legacy/revised/reward_function_loop_qwen3_weighted_correction.py \
     custom_reward_function.name=compute_score \
     $@

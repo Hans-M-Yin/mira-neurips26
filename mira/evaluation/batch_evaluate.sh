@@ -1,74 +1,74 @@
 #!/bin/bash
 
 # ==========================================================
-# 批量评测与打分脚本（增强版）
-# 用法:
-#   1. 跑全部:
+# Batch benchmark inference and scoring.
+# Usage:
+#   1. Evaluate all models:
 #      bash batch_evaluate.sh
 #
-#   2. 跑单个模型:
+#   2. Evaluate one model:
 #      bash batch_evaluate.sh ./merged_checkpoints ./eval_results model_A
 #
-#   3. 跑多个模型:
+#   3. Evaluate selected models:
 #      bash batch_evaluate.sh ./merged_checkpoints ./eval_results "model_A model_B"
 # ==========================================================
 
-# 1. 基础配置
-TARGET_ROOT="${1:-./merged_checkpoints}"    # 模型目录
-OUT_DIR_ROOT="${2:-./eval_results}"         # 输出目录
-SELECTED_MODELS="$3"                        # 用户指定模型（可选）
+# 1. Base configuration.
+TARGET_ROOT="${1:-./merged_checkpoints}"    # Model directory.
+OUT_DIR_ROOT="${2:-./eval_results}"         # Output directory.
+SELECTED_MODELS="$3"                        # Optional user-selected models.
 
-# API 配置
+# API configuration.
 export CORRECTION_PROJECT_API_KEY
 export CORRECTION_PROJECT_API_URL="${CORRECTION_PROJECT_API_URL:-https://api.openai.com/v1}"
 
-# 2. 检查模型目录
+# 2. Validate the model directory.
 if [ ! -d "$TARGET_ROOT" ]; then
-    echo "错误: 目标路径 '$TARGET_ROOT' 不存在！"
+    echo "Error: target directory '$TARGET_ROOT' does not exist."
     exit 1
 fi
 
 mkdir -p "$OUT_DIR_ROOT"
 
 echo "--------------------------------------------------------"
-echo "开始批量运行评测和打分程序..."
-echo "模型根目录: $TARGET_ROOT"
-echo "评测输出根目录: $OUT_DIR_ROOT"
+echo "Starting batch inference and scoring..."
+echo "Model root: $TARGET_ROOT"
+echo "Evaluation output root: $OUT_DIR_ROOT"
 echo "--------------------------------------------------------"
 
-# 3. 确定要处理的模型列表
+# 3. Select the models to process.
 if [ -z "$SELECTED_MODELS" ]; then
     MODEL_LIST=$(ls "$TARGET_ROOT")
 else
     MODEL_LIST=$SELECTED_MODELS
 fi
 
-# 4. 遍历模型
+# 4. Iterate over models.
 for MODEL_NAME in $MODEL_LIST; do
     MODEL_PATH="$TARGET_ROOT/$MODEL_NAME"
 
-    # 跳过不存在的目录
+    # Skip missing directories.
     if [ ! -d "$MODEL_PATH" ]; then
-        echo ">>> 跳过: $MODEL_NAME (目录不存在)"
+        echo ">>> Skipping $MODEL_NAME: directory does not exist."
         continue
     fi
 
     MODEL_OUT_DIR="$OUT_DIR_ROOT/$MODEL_NAME"
     mkdir -p "$MODEL_OUT_DIR"
 
-    echo ">>> 处理模型: $MODEL_NAME"
-    echo "    路径: $MODEL_PATH"
+    echo ">>> Processing model: $MODEL_NAME"
+    echo "    Path: $MODEL_PATH"
 
-    # --- 第一步: Evaluation ---
-    echo "    [Step 1/2] 运行基础评测..."
+    # Step 1: benchmark inference.
+    echo "    [Step 1/2] Running benchmark inference..."
 
     python evaluation_mathvista.py --checkpoint "$MODEL_PATH" --out-dir "$MODEL_OUT_DIR"
     python evaluation_mathverse.py --checkpoint "$MODEL_PATH" --out-dir "$MODEL_OUT_DIR"
     python evaluation_mathvision.py --checkpoint "$MODEL_PATH" --out-dir "$MODEL_OUT_DIR"
     python evaluation_wemath.py --checkpoint "$MODEL_PATH" --out-dir "$MODEL_OUT_DIR"
 
-    # --- 第二步: Judge ---
-    echo "    [Step 2/2] 运行模型打分 (Judge)..."
+    # Step 2: answer scoring.
+    echo "    [Step 2/2] Running answer scoring..."
 
     python judge_mathvista.py \
         --api_key "$CORRECTION_PROJECT_API_KEY" \
@@ -88,7 +88,7 @@ for MODEL_NAME in $MODEL_LIST; do
         --eval_basedir "$MODEL_OUT_DIR" \
         --eval_file "mathvision_test.json"
 
-    # 可选 wemath judge
+    # Optional WeMath scoring.
     if [ -f "judge_wemath.py" ]; then
         python judge_wemath.py \
             --api_key "$CORRECTION_PROJECT_API_KEY" \
@@ -96,12 +96,12 @@ for MODEL_NAME in $MODEL_LIST; do
             --eval_basedir "$MODEL_OUT_DIR" \
             --eval_file "wemath_test.json"
     else
-        echo "    [Notice] 跳过 judge_wemath.py (文件不存在)"
+        echo "    [Notice] Skipping judge_wemath.py: file does not exist."
     fi
 
-    echo "<<< 完成模型: $MODEL_NAME"
+    echo "<<< Model complete: $MODEL_NAME"
     echo "--------------------------------------------------------"
 done
 
-echo "批量任务全部完成。"
-echo "所有结果保存在: $OUT_DIR_ROOT"
+echo "All batch jobs completed."
+echo "Results saved under: $OUT_DIR_ROOT"

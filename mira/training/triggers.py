@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 triggers = None
 def has_chinese(text):
-    """判断字符串中是否包含中文字符"""
+    """Return whether the text contains a Chinese character."""
     pattern = re.compile(r'[\u4e00-\u9fff]')
     # print( bool(pattern.search(text)))
     return bool(pattern.search(text))
@@ -141,4 +141,3 @@ def add_correction_trigger(
         raise NotImplementedError
 
     return new_batch
-

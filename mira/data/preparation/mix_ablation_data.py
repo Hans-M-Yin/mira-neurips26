@@ -83,21 +83,21 @@ def count_types(samples):
     return counts
 
 def convert_to_normal(sample):
-    """将样本降级为普通样本(Type 0)"""
+    """Convert an augmented sample to a clean sample with metadata type zero."""
     new_sample = copy.deepcopy(sample)
     ex = new_sample['extra_info']
     if isinstance(ex, str):
         ex = json.loads(ex)
     
-    # 强制修改状态
+    # Reset the sample state.
     ex['type'] = 0
-    # 保留 caption_correct 便于追溯，但把 wrong-caption 相关信息清空，避免语义不一致
+    # Keep the correct caption for traceability but clear misleading-caption metadata.
     ex['caption_modified'] = None
     ex['modify_info'] = None
     ex['num_modify'] = 0
     new_sample['extra_info'] = ex
     
-    # 兼容历史顶层字段；如果存在也一起清掉，避免 schema 脏数据
+    # Also clear historical top-level fields when present.
     if 'caption_modified' in new_sample:
         new_sample['caption_modified'] = None
     if 'modify_info' in new_sample:
@@ -105,7 +105,7 @@ def convert_to_normal(sample):
     if 'num_modify' in new_sample:
         new_sample['num_modify'] = 0
     
-    # 还原 Prompt (如果是 assistant prefill 模式，需要把插入的文本删掉)
+    # Restore the original prompt by removing the assistant prefill.
     prompt = new_sample.get('prompt', [])
     if isinstance(prompt, list):
         new_sample['prompt'] = [copy.deepcopy(m) for m in prompt if m.get('role') != 'assistant']
@@ -132,7 +132,7 @@ def main():
         for p in [args.path_a, args.path_b, args.path_c]
     ]
 
-    # 1. 建立基于 source_idx 的查找字典
+    # 1. Index samples by their source indices.
     print("Building lookup index and filtering corrupt images...")
     lookup = [{}, {}, {}]
     all_source_indices = set()
@@ -140,7 +140,7 @@ def main():
     
     for i, df in enumerate(ds_list):
         for idx, row in tqdm(df.iterrows(), total=len(df), desc=f"Indexing & Filtering DS {i}"):
-            # ── 过滤损坏图片 ──
+            # Exclude corrupt images.
             img = extract_image(row.get('images'))
             if img is None or is_corrupt(img):
                 corrupt_counts[i] += 1
@@ -149,8 +149,8 @@ def main():
             s_idx = get_source_idx(row['extra_info'])
             if s_idx != -1:
                 row_dict = row.to_dict()
-                # ── 关键修复：确保存储的是解码后的 PIL 对象列表 ──
-                # transformers 期待 [PIL.Image, ...]，而不是 HuggingFace 的镜像字典
+                # Store decoded PIL images.
+                # Transformers expects PIL images rather than serialized Hugging Face dictionaries.
                 row_dict['images'] = [img] 
                 lookup[i][s_idx] = row_dict
                 all_source_indices.add(s_idx)
@@ -165,7 +165,7 @@ def main():
             "Please check whether your parquet files contain `extra_info.idx` or `extra_info.source_idx`."
         )
 
-    # 2. 优先级合并核心逻辑
+    # 2. Merge samples according to source priority.
     print(f"Merging with Priority A -> B -> C (Total unique samples: {len(all_source_indices)})")
     golden_wrong_pool = []
     
@@ -173,7 +173,7 @@ def main():
     
     for s_idx in tqdm(sorted(list(all_source_indices)), desc="Matching Priorities"):
         target_sample = None
-        # 按 A -> B -> C 顺序找第一个 type=1 的
+        # Select the first augmented sample in A, B, C order.
         for i in range(3):
             candidate = lookup[i].get(s_idx)
             if candidate and get_type(candidate['extra_info']) == 1:
@@ -204,10 +204,10 @@ def main():
             "for the shared indices."
         )
 
-    # 3. 按比例生成
+    # 3. Construct each requested mixture.
     os.makedirs(args.output_dir, exist_ok=True)
     shuffled_pool = copy.deepcopy(golden_wrong_pool)
-    random.shuffle(shuffled_pool) # 随机打乱以保证不同比例间的样本包含关系是平滑的
+    random.shuffle(shuffled_pool)  # Shuffle once to preserve consistent sample inclusion across mixture ratios.
 
     for r in ratios:
         print(f"\nGenerating dataset for ratio: {r:.1%}")
@@ -216,24 +216,24 @@ def main():
         final_list = []
         for i, sample in enumerate(shuffled_pool):
             if i < num_wrong:
-                # 保持为 Wrong Caption
+                # Keep the misleading-caption sample.
                 final_list.append(copy.deepcopy(sample))
             else:
-                # 转换为 Normal
+                # Convert to a clean sample.
                 final_list.append(convert_to_normal(sample))
         
-        # 转换为 HF Dataset 以保存为 Parquet
+        # Convert to a Hugging Face dataset for Parquet export.
         out_ds = Dataset.from_list(final_list)
         
-        # 修复特征类型冲突（如果保存报错，通常是因为 None 值导致推断错误）
-        # 这里统一将 extra_info 转回 dict
+        # Normalize features to avoid type inference conflicts caused by missing values.
+        # Convert metadata back to plain dictionaries.
         def finalize(example):
             if isinstance(example['extra_info'], str):
                 example['extra_info'] = json.loads(example['extra_info'])
             
-            # 确保 images 是列表格式且不包含残留的 HF 字典
+            # Ensure the image field is a list of decoded images.
             if example.get('images') is not None:
-                # 如果是单张图，包装成列表
+                # Wrap a single image in a list.
                 if not isinstance(example['images'], list):
                     example['images'] = [example['images']]
             return example

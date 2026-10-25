@@ -23,27 +23,27 @@
 #     if not answer:
 #         return None
 #     s = answer.strip()
-#     # 1. 明确的指示词 + 字母 (最高优先级)
+
 #     phrase_pattern = re.compile(
-#         r'(?i)(?:综上所述|总结|最终|答案|选择|choose|is|are|是|为|答案[:：]|选项)[:：\s]*([A-F])\b'
+
 #     )
 #     m = phrase_pattern.findall(s)
-#     if m: return m[-1].upper() # 取最后一个出现的明确答案
-#     # 2. Markdown 加粗形式 **A** (高优先级)
+
+
 #     md_pattern = re.compile(r'(?i)\*\*\s*([A-F])\s*\*\*')
 #     m = md_pattern.findall(s)
 #     if m: return m[-1].upper()
-#     # 3. 括号/标点包围
+
 #     bracket_pattern = re.compile(
 #         r'(?:(?<=\()|(?<=\[)|(?<=\{)|(?<=（)|(?<=【))\s*([A-Fa-f])\s*(?=[\)\]\}）】])'
 #     )
 #     m = bracket_pattern.findall(s)
 #     if m: return m[-1].upper()
-#     # 4. 字母 + 标点/空白 (如 "C.", "D:", "A ")
+
 #     punct_pattern = re.compile(r'(?i)\b([A-F])(?=[\.\)\]：:）】\s]|$)')
 #     m = punct_pattern.findall(s)
 #     if m: return m[-1].upper()
-#     # 5. 独立字母（全文本只有一个字母的情况）
+
 #     pure_letter = re.findall(r'(?i)\b([A-F])\b', s)
 #     if len(set(pure_letter)) == 1:
 #         return pure_letter[0].upper()
@@ -416,7 +416,7 @@
 #         "idx": 0,
 #         "answer": "A",
 #         "question": "Which one has a higher hospital beds per 1 population? (A) New Jersey (B) Georgia",
-#         "caption_correct": "图片展示三角形ABC，其中OB和OC分别为∠ABC和∠ACB的内角平分线，相交于点O，连接OA。图中清晰标记了点A、B、C、O的位置及连线结构。",
+
 #         "caption_modified": "The image is a choropleth map of the United States showing the distribution of hospital beds per 1 population. The states are color-coded into different ranges: 0.8-1.2, 0.5-0.7, 0.2-0.4, 0.0-0.1, and N/A (not applicable). New Jersey is shaded in a medium pink, which corresponds to the range 0.0-0.1. Georgia is shaded in a lighter pink, which corresponds to the range 0.2-0.4.",
 #         "modify_info": [["New Jersey is 0.2-0.4 range",'New Jersey  is in 0.0-0.1 range.']
 #                         ],
@@ -425,7 +425,7 @@
 #     }
 
 #     # solution_str = """<think> The color wheel in the image is a representation of the Hue-Saturation subspace. The saturation coefficient is the amount of color present in a hue. The more saturated a color is, the more it deviates from the center of the circle. Therefore, the color that is closest to the center of the circle will have the smallest saturation coefficient. In the image, color A is the closest to the center, so it has the smallest saturation coefficient. </think>\n<answer> A </answer>"""
-#     # 使用 asyncio.run() 运行异步函数
+
 #     solution_str = """
 # Reflecting on the image, it seems there was a misinterpretation. New Jersey is actually in the 0.2-0.4 range, while Georgia is in the 0.0-0.1 range. Therefore, New Jersey does not have a higher value than Georgia. Correcting the initial thought, the answer is actually that New Jersey does not have a higher value than Georgia.
 
@@ -433,7 +433,7 @@
 
 # Original answer: B</think>
 # <answer>B</answer>"""
-#     answer = asyncio.run(compute_score("编的", solution_str, "E. (b).", extra_info, test_ip, None))
+
 #     print(f"Score: {answer}")
 
 
@@ -462,27 +462,27 @@ async def re_hard_match(answer: str):
     if not answer:
         return None
     s = answer.strip()
-    # 1. 明确的指示词 + 字母 (最高优先级)
+    # 1. Explicit answer cue followed by an option letter, in priority order.
     phrase_pattern = re.compile(
         r'(?i)(?:综上所述|总结|最终|答案|选择|choose|is|are|是|为|答案[:：]|选项)[:：\s]*([A-F])\b'
     )
     m = phrase_pattern.findall(s)
-    if m: return m[-1].upper() # 取最后一个出现的明确答案
-    # 2. Markdown 加粗形式 **A** (高优先级)
+    if m: return m[-1].upper()  # Use the final explicitly stated answer.
+    # 2. Markdown-bold option letter.
     md_pattern = re.compile(r'(?i)\*\*\s*([A-F])\s*\*\*')
     m = md_pattern.findall(s)
     if m: return m[-1].upper()
-    # 3. 括号/标点包围
+    # 3. Option letter surrounded by brackets or punctuation.
     bracket_pattern = re.compile(
         r'(?:(?<=\()|(?<=\[)|(?<=\{)|(?<=（)|(?<=【))\s*([A-Fa-f])\s*(?=[\)\]\}）】])'
     )
     m = bracket_pattern.findall(s)
     if m: return m[-1].upper()
-    # 4. 字母 + 标点/空白 (如 "C.", "D:", "A ")
+    # 4. Option letter followed by punctuation or whitespace.
     punct_pattern = re.compile(r'(?i)\b([A-F])(?=[\.\)\]：:）】\s]|$)')
     m = punct_pattern.findall(s)
     if m: return m[-1].upper()
-    # 5. 独立字母（全文本只有一个字母的情况）
+    # 5. A unique standalone option letter.
     pure_letter = re.findall(r'(?i)\b([A-F])\b', s)
     if len(set(pure_letter)) == 1:
         return pure_letter[0].upper()
@@ -890,7 +890,7 @@ if __name__ == "__main__":
     }
 
     # solution_str = """<think> The color wheel in the image is a representation of the Hue-Saturation subspace. The saturation coefficient is the amount of color present in a hue. The more saturated a color is, the more it deviates from the center of the circle. Therefore, the color that is closest to the center of the circle will have the smallest saturation coefficient. In the image, color A is the closest to the center, so it has the smallest saturation coefficient. </think>\n<answer> A </answer>"""
-    # 使用 asyncio.run() 运行异步函数
+    # Run the asynchronous score function.
     solution_str = """
 Reflecting on the image, it seems there was a misinterpretation. New Jersey is actually in the 0.2-0.4 range, while Georgia is in the 0.0-0.1 range. Therefore, New Jersey does not have a higher value than Georgia. Correcting the initial thought, the answer is actually that New Jersey does not have a higher value than Georgia.
 

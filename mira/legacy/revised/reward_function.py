@@ -97,41 +97,41 @@ def re_hard_match(answer: str):
         return None
     s = answer.strip()
 
-    # 1. 明确的指示词 + 字母 (最高优先级)
-    # 增加 "综上"、"最后" 等词汇
+    # 1. Explicit answer cue followed by an option letter, in priority order.
+    # Recognize common concluding answer cues in both supported languages.
     phrase_pattern = re.compile(
         r'(?i)(?:综上所述|总结|最终|答案|选择|choose|is|are|是|为|答案[:：]|选项)[:：\s]*([A-F])\b'
     )
     m = phrase_pattern.findall(s)
-    if m: return m[-1].upper() # 取最后一个出现的明确答案
+    if m: return m[-1].upper()  # Use the final explicitly stated answer.
 
-    # 2. Markdown 加粗形式 **A** (高优先级)
+    # 2. Markdown-bold option letter.
     md_pattern = re.compile(r'(?i)\*\*\s*([A-F])\s*\*\*')
     m = md_pattern.findall(s)
     if m: return m[-1].upper()
 
-    # 3. 括号/标点包围
+    # 3. Option letter surrounded by brackets or punctuation.
     bracket_pattern = re.compile(
         r'(?:(?<=\()|(?<=\[)|(?<=\{)|(?<=（)|(?<=【))\s*([A-Fa-f])\s*(?=[\)\]\}）】])'
     )
     m = bracket_pattern.findall(s)
     if m: return m[-1].upper()
 
-    # 4. 字母 + 标点/空白 (如 "C.", "D:", "A ")
-    # 注意避免匹配到单词开头，\b 很重要
+    # 4. Option letter followed by punctuation or whitespace.
+    # Require a word boundary to avoid matching word prefixes.
     punct_pattern = re.compile(r'(?i)\b([A-F])(?=[\.\)\]：:）】\s]|$)')
     m = punct_pattern.findall(s)
     if m: return m[-1].upper()
 
-    # 5. 独立字母（全文本只有一个字母的情况）
-    # 如果全文只有 1 个 A-F 的字母，那基本就是它了
+    # 5. A unique standalone option letter.
+    # Accept the only distinct standalone option letter.
     pure_letter = re.findall(r'(?i)\b([A-F])\b', s)
     if len(set(pure_letter)) == 1:
         return pure_letter[0].upper()
     return None
 
 def compute_correction_reward(data_source, solution_str, ground_truth, extra_info):
-    # 调LLM-as-judge感觉太花时间了啊
+
 
     modify_info = extra_info['modify_info']
     num_modify = extra_info['num_modify']
@@ -276,8 +276,8 @@ def compute_score(data_source: str, solution_str: str, ground_truth: str, extra_
     return {"score": final_score, "acc_reward": acc_reward, "format_reward": correction_reward}
 
 if __name__ == "__main__":
-    # 这个依然有点不可验证的感觉。用LLM-as-judge还是太主观了。
-    # Qwen2.5-VL-7B肯定不能作为judge model，实在太弱了。
+
+
     extra_info =  {
         "type": 1,
         "split": "train",
@@ -290,6 +290,6 @@ if __name__ == "__main__":
         "num_modify": 3,
         "original_output": "Hello"
     }
-    # print("你好！")
+
     solution_str = """好的。为了计算∠BOC，我们只需要知道∠OBC和∠OCB。现在让我在看一下图，等下，图片中A在上方，B在下方，并且原图中两条角平分线相交于O，而不是A点。假设∠A=110°，那么∠OBC+∠OCB=35°，所以∠BOC=180°-35°=145°。答案选A。</think> A选项应该是对的。"""
     compute_score("编的",solution_str,"A",extra_info)

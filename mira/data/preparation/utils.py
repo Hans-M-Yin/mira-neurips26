@@ -1,7 +1,4 @@
-"""
-data/utils.py
-辅助函数，供 data_preprocess_v2.py 及同目录其他脚本调用。
-"""
+"""Shared helpers for the data-preparation pipeline."""
 
 import base64
 import io
@@ -16,28 +13,26 @@ import PIL.Image as Image
 # ─────────────────────────────────────────────────────────────────────────────
 
 def encode_image(image, format: str = "JPEG", quality: int = 85) -> str:
-    """
-    将 PIL.Image 对象编码为 base64 字符串（用于 OpenAI vision API）。
+    """Encode a PIL image as base64 for an OpenAI-compatible vision request.
 
-    参数：
-        image   : PIL.Image 对象，或已是 base64 str（直接返回）
-        format  : 保存格式，默认 JPEG（体积小，适合 API 传输）
-        quality : JPEG 质量，默认 85
+    Args:
+        image: A PIL image or an existing base64 string, returned unchanged.
+        format: Image encoding format; defaults to JPEG.
+        quality: JPEG quality; defaults to 85.
 
-    返回：
-        base64 编码的字符串（不含 data URI 前缀）
-    """
+    Returns:
+        The base64 payload without a data-URI prefix."""
     if isinstance(image, str):
-        # 已经是 base64 字符串，直接返回
+        # Return an already encoded base64 string unchanged.
         return image
 
     if isinstance(image, bytes):
         return base64.b64encode(image).decode("utf-8")
 
     if not isinstance(image, Image.Image):
-        raise TypeError(f"encode_image 期望 PIL.Image，收到 {type(image)}")
+        raise TypeError(f"encode_image expected a PIL image, received {type(image)}")
 
-    # JPEG 不支持 RGBA，先转 RGB
+    # Convert RGBA to RGB because JPEG does not support an alpha channel.
     if image.mode in ("RGBA", "P", "LA"):
         image = image.convert("RGB")
 
@@ -51,20 +46,18 @@ def encode_image(image, format: str = "JPEG", quality: int = 85) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def setup_logger(name: str, log_file: str = "tmp.log", level: int = logging.INFO) -> logging.Logger:
-    """
-    创建一个同时输出到文件和控制台的 logger。
+    """Create a logger with file and console handlers.
 
-    参数：
-        name     : logger 名称（通常传 __name__）
-        log_file : 日志文件路径，默认 tmp.log（相对于当前工作目录）
-        level    : 日志级别，默认 INFO
+    Args:
+        name: Logger name, usually the calling module name.
+        log_file: Log path; defaults to a local temporary log.
+        level: Logging level, defaulting to INFO.
 
-    返回：
-        配置好的 logging.Logger 对象
-    """
+    Returns:
+        The configured logging.Logger instance."""
     logger = logging.getLogger(name)
 
-    # 避免重复添加 handler（multiprocessing 场景下父进程可能多次调用）
+    # Avoid duplicate handlers when initialized repeatedly by multiprocessing workers.
     if logger.handlers:
         return logger
 
@@ -74,16 +67,16 @@ def setup_logger(name: str, log_file: str = "tmp.log", level: int = logging.INFO
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # ── 文件 handler ──
+    # File handler.
     os.makedirs(os.path.dirname(os.path.abspath(log_file)) if os.path.dirname(log_file) else ".", exist_ok=True)
     fh = logging.FileHandler(log_file, encoding="utf-8")
     fh.setLevel(level)
     fh.setFormatter(fmt)
     logger.addHandler(fh)
 
-    # ── 控制台 handler ──
+    # Console handler.
     ch = logging.StreamHandler()
-    ch.setLevel(logging.WARNING)   # 控制台只显示 WARNING 及以上，避免刷屏
+    ch.setLevel(logging.WARNING)  # Restrict console output to warnings and errors.
     ch.setFormatter(fmt)
     logger.addHandler(ch)
 

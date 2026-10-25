@@ -83,17 +83,17 @@ EOP
 
 RUN cat <<'EOP' > /root/start_isaac_vnc.sh
 #!/bin/bash
-# 设置显示变量
+# Configure display variables.
 export DISPLAY=:1
 
-# 检查VNC是否运行
+# Check whether VNC is running.
 if ! pgrep -f "Xvnc.*:1" > /dev/null; then
     echo "Starting VNC server..."
     vncserver :1 -localhost no -geometry 1920x1080 -depth 24 -desktop "Isaac-Sim-Desktop"
     sleep 3
 fi
 
-# 启动Isaac Sim
+# Start Isaac Sim.
 echo "Starting Isaac Sim..."
 /workspace/isaaclab/_isaac_sim/isaac-sim.sh --allow-root
 EOP

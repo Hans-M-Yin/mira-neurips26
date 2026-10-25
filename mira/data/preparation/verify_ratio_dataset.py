@@ -1,16 +1,9 @@
-"""
-统计 mix_ablation_datasets.py 生成的 dataset 中各 type 的数据数量。
+"""Count sample types in datasets produced by the mixture utility.
 
-用法示例:
-  # 统计单个 parquet 文件
-  python data/count_dataset_types.py --path ./ablation_mix/ratio_050/train.parquet
-
-  # 统计整个输出目录下所有子目录的 parquet 文件（批量）
-  python data/count_dataset_types.py --dir ./ablation_mix
-
-  # 打印每种 type 的详细信息
-  python data/count_dataset_types.py --path ./ablation_mix/ratio_050/train.parquet --verbose
-"""
+Examples:
+    python -m mira.data.preparation.verify_ratio_dataset --path ablation_mix/ratio_050/train.parquet
+    python -m mira.data.preparation.verify_ratio_dataset --dir ablation_mix
+    python -m mira.data.preparation.verify_ratio_dataset --path train.parquet --verbose"""
 
 import argparse
 import json
@@ -21,7 +14,7 @@ from collections import Counter
 import pandas as pd
 from datasets import load_dataset
 
-# type 含义映射（与 mix_ablation_datasets.py 保持一致）
+# Keep sample-type meanings consistent with mixture construction.
 TYPE_LABELS = {
     0: "Normal (Type 0)",
     1: "Wrong Caption / Adversarial (Type 1)",
@@ -29,7 +22,7 @@ TYPE_LABELS = {
 
 
 def get_type(extra_info) -> int:
-    """从 extra_info 字段提取 type 值。"""
+    """Read the sample type from the metadata field."""
     if isinstance(extra_info, str):
         try:
             extra_info = json.loads(extra_info)
@@ -41,7 +34,7 @@ def get_type(extra_info) -> int:
 
 
 def _extract_prompt_text(prompt_field) -> str:
-    """从 prompt 列表（messages 格式）中提取 user 消息的文本。"""
+    """Extract user-message text from the prompt message list."""
     if isinstance(prompt_field, list):
         for msg in prompt_field:
             if isinstance(msg, dict) and msg.get("role") == "user":
@@ -54,19 +47,18 @@ def _extract_prompt_text(prompt_field) -> str:
 
 
 def print_sample_previews(df: pd.DataFrame, n: int = 5, target_type: int | None = None) -> None:
-    """打印前 n 个样本（可按 type 过滤）的 type 和 prompt 内容（截断显示）。
+    """Display a bounded number of sample types and prompt excerpts.
 
     Args:
-        df: 完整的 DataFrame。
-        n:  最多显示几个样本。
-        target_type: 若指定，则只看 type == target_type 的行；None 表示不过滤。
-    """
+        df: The complete DataFrame.
+        n: Maximum number of samples to display.
+        target_type: Optional type filter; None includes every type."""
 
     if target_type is None:
         subset = df.head(n)
         title = f"SAMPLE PREVIEW (first {min(n, len(df))} samples)"
     else:
-        # 过滤出目标 type 的行
+        # Filter rows by the requested sample type.
         mask = df["extra_info"].apply(lambda x: get_type(x) == target_type)
         filtered = df[mask]
         found = len(filtered)
@@ -98,7 +90,7 @@ def print_sample_previews(df: pd.DataFrame, n: int = 5, target_type: int | None 
 
 
 def count_types_in_parquet(parquet_path: str, verbose: bool = False) -> Counter:
-    """加载 parquet 文件并统计各 type 的数量。"""
+    """Load a Parquet file and count the samples of each type."""
     print(f"\n{'='*60}")
     print(f"File : {parquet_path}")
     print(f"{'='*60}")
@@ -121,7 +113,7 @@ def count_types_in_parquet(parquet_path: str, verbose: bool = False) -> Counter:
         t = get_type(row["extra_info"])
         type_counter[t] += 1
 
-    # 打印结果
+    # Display the results.
     print(f"\n{'Type':<10} {'Label':<45} {'Count':>8} {'Ratio':>8}")
     print("-" * 75)
     for t in sorted(type_counter.keys()):
@@ -143,7 +135,7 @@ def count_types_in_parquet(parquet_path: str, verbose: bool = False) -> Counter:
 
 
 def count_types_in_dir(directory: str, verbose: bool = False):
-    """遍历目录下所有子目录，查找 train.parquet 并批量统计。"""
+    """Find training Parquet files in subdirectories and summarize their sample types."""
     found = []
     for root, dirs, files in os.walk(directory):
         for fname in files:
@@ -163,12 +155,12 @@ def count_types_in_dir(directory: str, verbose: bool = False):
         total = sum(counter.values())
         summary_rows.append({"path": path, "counter": counter, "total": total})
 
-    # 汇总表格
+    # Aggregate table.
     print(f"\n\n{'='*60}")
     print("SUMMARY ACROSS ALL FILES")
     print(f"{'='*60}")
 
-    # 收集所有出现过的 type
+    # Collect all observed sample types.
     all_types = sorted(set(t for row in summary_rows for t in row["counter"].keys()))
 
     header = f"{'File':<35}" + "".join(
@@ -188,23 +180,23 @@ def count_types_in_dir(directory: str, verbose: bool = False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="统计 mix_ablation_datasets.py 生成的 dataset 中各 type 的数据数量。"
+        description="Count the sample types in datasets produced by the mixture utility."
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--path",
         type=str,
-        help="单个 .parquet 文件路径",
+        help="Path to a single Parquet file.",
     )
     group.add_argument(
         "--dir",
         type=str,
-        help="包含多个 ratio_xxx 子目录的输出目录路径（批量统计）",
+        help="Output directory containing multiple ratio subdirectories.",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="打印每个文件的原始 type Counter",
+        help="Display the raw sample-type counter for each file.",
     )
     args = parser.parse_args()
 

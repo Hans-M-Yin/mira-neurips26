@@ -31,7 +31,7 @@ class NaiveRewardManager(RewardManagerBase):
         self.is_async_reward_score = inspect.iscoroutinefunction(self.compute_score)
         self.reward_router_address = reward_router_address
         self.reward_model_tokenizer = reward_model_tokenizer
-        # print(f"#################################################初始化时： {self.reward_router_address}#################################")
+
 
 
     async def run_single(self, data: DataProto) -> dict:
@@ -57,7 +57,7 @@ class NaiveRewardManager(RewardManagerBase):
         response_str = await self.loop.run_in_executor(
             None, lambda: self.tokenizer.decode(valid_response_ids, skip_special_tokens=True)
         )
-        # print(f"################################################# 现在： {self.reward_router_address}#################################")
+
 
         # logger.warning(f"@@@@@@@@@@@@@ {self.reward_router_address}")
         extra_reward_kwargs = (

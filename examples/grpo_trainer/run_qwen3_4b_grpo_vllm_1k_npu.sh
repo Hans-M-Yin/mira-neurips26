@@ -2,19 +2,19 @@ set -xeuo pipefail
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 source /usr/local/Ascend/nnal/atb/set_env.sh
 
-# 使用v1引擎
+# Use the v1 inference engine.
 export VLLM_USE_V1=1
-# 指定vllm 版本
+# Select the vLLM version.
 export VLLM_VERSION=0.9.1
 
-# 开启二级流水
+# Enable two-stage pipelining.
 export TASK_QUEUE_ENABLE=2
-# 开启细绑核
+# Enable fine-grained CPU affinity.
 export CPU_AFFINITY_CONF=1
-# 使用jemalloc优化内存访问（依赖安装jemalloc）
+# Optimize memory access with jemalloc when installed.
 export LD_PRELOAD="/usr/lib/aarch64-linux-gnu/libjemalloc.so.2${LD_PRELOAD:+:$LD_PRELOAD}"
 
-# A3 机器单机8卡
+# Use eight devices on a single A3 node.
 trainer_n_gpus_per_node=16
 trainer_nnodes=1
 trainer_project_name='verl_grpo_example_gsm8k'

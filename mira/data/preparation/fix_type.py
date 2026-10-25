@@ -1,25 +1,13 @@
-"""
-fix_type0_prompt.py
-─────────────────────────────────────────────────────────────────────────────
-修复 mix_ablation_datasets.py 输出的数据集中 type=0 样本的 prompt：
-将末尾残留的 assistant 消息删除。
+"""Remove trailing assistant turns from clean samples in a mixed dataset.
 
-该脚本：
-1. 读取输入 parquet
-2. 对所有 extra_info.type == 0 的样本，剔除 prompt 列表末尾的 assistant 消息
-3. 统计修复数量并验证结果
-4. 将修复后的数据集写入输出 parquet（默认覆盖原文件，可用 --output 指定新路径）
+Inspect each sample whose metadata type is zero, remove trailing assistant
+messages, verify the repair, and write the resulting Parquet file. In-place
+writes create a backup; an explicit output path writes a separate file.
 
-用法:
-  # 原地修复（覆盖原文件前会先备份到 .bak）
-  python data/fix_type0_prompt.py --parquet /path/to/train.parquet
-
-  # 写入新文件
-  python data/fix_type0_prompt.py --parquet /path/to/train.parquet --output /path/to/fixed.parquet
-
-  # 只检查，不写入
-  python data/fix_type0_prompt.py --parquet /path/to/train.parquet --dry-run
-"""
+Examples:
+    python -m mira.data.preparation.fix_type --parquet train.parquet
+    python -m mira.data.preparation.fix_type --parquet train.parquet --output fixed.parquet
+    python -m mira.data.preparation.fix_type --parquet train.parquet --dry-run"""
 
 import argparse
 import json
@@ -48,7 +36,7 @@ def get_type(extra_info) -> int:
 
 
 def has_trailing_assistant(prompt) -> bool:
-    """检查 prompt 列表末尾是否有 role=assistant 的消息。"""
+    """Return whether the prompt ends with an assistant message."""
     if not isinstance(prompt, list) or len(prompt) == 0:
         return False
     last = prompt[-1]
@@ -58,7 +46,7 @@ def has_trailing_assistant(prompt) -> bool:
 
 
 def strip_trailing_assistant(prompt) -> list:
-    """删除 prompt 列表末尾所有 role=assistant 的消息（通常只有一条）。"""
+    """Remove every trailing assistant message from the prompt."""
     if not isinstance(prompt, list):
         return prompt
     result = list(prompt)

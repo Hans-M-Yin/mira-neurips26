@@ -22,27 +22,27 @@ async def re_hard_match(answer: str):
     if not answer:
         return None
     s = answer.strip()
-    # 1. 明确的指示词 + 字母 (最高优先级)
+    # 1. Explicit answer cue followed by an option letter, in priority order.
     phrase_pattern = re.compile(
         r'(?i)(?:综上所述|总结|最终|答案|选择|choose|is|are|是|为|答案[:：]|选项)[:：\s]*([A-F])\b'
     )
     m = phrase_pattern.findall(s)
-    if m: return m[-1].upper() # 取最后一个出现的明确答案
-    # 2. Markdown 加粗形式 **A** (高优先级)
+    if m: return m[-1].upper()  # Use the final explicitly stated answer.
+    # 2. Markdown-bold option letter.
     md_pattern = re.compile(r'(?i)\*\*\s*([A-F])\s*\*\*')
     m = md_pattern.findall(s)
     if m: return m[-1].upper()
-    # 3. 括号/标点包围
+    # 3. Option letter surrounded by brackets or punctuation.
     bracket_pattern = re.compile(
         r'(?:(?<=\()|(?<=\[)|(?<=\{)|(?<=（)|(?<=【))\s*([A-Fa-f])\s*(?=[\)\]\}）】])'
     )
     m = bracket_pattern.findall(s)
     if m: return m[-1].upper()
-    # 4. 字母 + 标点/空白 (如 "C.", "D:", "A ")
+    # 4. Option letter followed by punctuation or whitespace.
     punct_pattern = re.compile(r'(?i)\b([A-F])(?=[\.\)\]：:）】\s]|$)')
     m = punct_pattern.findall(s)
     if m: return m[-1].upper()
-    # 5. 独立字母（全文本只有一个字母的情况）
+    # 5. A unique standalone option letter.
     pure_letter = re.findall(r'(?i)\b([A-F])\b', s)
     if len(set(pure_letter)) == 1:
         return pure_letter[0].upper()
@@ -295,7 +295,7 @@ async def compute_score(
         # 1. Base Accuracy Reward
         re_match_answer = await re_hard_match(answer_text)
         re_match_gt = await re_hard_match(ground_truth)
-        # print(f"有点高: {re_match_answer} | {re_match_gt}")
+
         if re_match_answer and re_match_gt:
             acc_reward = 1.0 if re_match_answer == re_match_gt else 0.0
             if acc_reward != 1.0:
@@ -371,7 +371,7 @@ if __name__ == "__main__":
 #         "idx": 0,
 #         "answer": "A",
 #         "question": "Which one has a higher hospital beds per 1 population? (A) New Jersey (B) Georgia",
-#         "caption_correct": "图片展示三角形ABC，其中OB和OC分别为∠ABC和∠ACB的内角平分线，相交于点O，连接OA。图中清晰标记了点A、B、C、O的位置及连线结构。",
+
 #         "caption_modified": "The image is a choropleth map of the United States showing the distribution of hospital beds per 1 population. The states are color-coded into different ranges: 0.8-1.2, 0.5-0.7, 0.2-0.4, 0.0-0.1, and N/A (not applicable). New Jersey is shaded in a medium pink, which corresponds to the range 0.0-0.1. Georgia is shaded in a lighter pink, which corresponds to the range 0.2-0.4.",
 #         "modify_info": [["New Jersey is 0.2-0.4 range",'New Jersey  is in 0.0-0.1 range.']
 #                         ],
@@ -401,7 +401,7 @@ if __name__ == "__main__":
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if not line:  # 跳过空行
+                if not line:  # Skip empty lines.
                     continue
                 data.append(json.loads(line))
         return data

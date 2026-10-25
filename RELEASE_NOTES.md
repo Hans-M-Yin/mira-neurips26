@@ -23,6 +23,18 @@ format adapter imports the shared correction reward directly. Module-style and
 direct-file evaluation commands are both supported. Moving these files does not
 change the reward, sampler, or trigger function bodies.
 
+## Annotation and filename cleanup
+
+Code comments, Python docstrings, command-line help, and diagnostic messages are
+written in English. Temporary development remarks have been removed, and ambiguous
+or misspelled historical filenames have been corrected together with their references.
+Historical experiment identifiers and optimization settings are retained.
+
+Chinese text that forms part of model prompts, answer-matching expressions,
+reflection triggers, or multilingual examples remains unchanged. The upstream
+Chinese documentation is also retained as documentation, separately from code
+annotations. The cleanup does not change these model inputs or the training logic.
+
 ## Software environment observed during packaging
 
 The local packaging/validation environment uses Python 3.11, PyTorch 2.8.0,

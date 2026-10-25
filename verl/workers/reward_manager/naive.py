@@ -85,14 +85,14 @@ class NaiveRewardManager(AbstractRewardManager):
 
             if hasattr(self.compute_score, '__name__'):
                 logger.warning(
-                    f"########## 函数名: {self.compute_score.__name__}, 模块: {self.compute_score.__module__} ############")
+                    f"Reward function: {self.compute_score.__name__}, module: {self.compute_score.__module__}")
             elif hasattr(self.compute_score, 'func'):
-                # 如果是 partial 对象，获取原始函数
+                # Unwrap functools.partial to inspect the original score function.
                 original_func = self.compute_score.func
                 logger.warning(
-                    f"########## partial对象, 原始函数: {original_func.__name__}, 模块: {original_func.__module__} ############")
+                    f"Partial reward function: {original_func.__name__}, module: {original_func.__module__}")
             else:
-                logger.warning(f"########## 未知函数类型: {type(self.compute_score)} ############")
+                logger.warning(f"Reward function type: {type(self.compute_score)}")
             score = self.compute_score(
                 data_source=data_source,
                 solution_str=response_str,

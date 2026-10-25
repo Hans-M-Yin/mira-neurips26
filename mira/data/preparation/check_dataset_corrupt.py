@@ -1,15 +1,12 @@
-"""
-check_corrupt_images.py — 检测 parquet 数据集中损坏的图片（纯白/纯黑/近似纯色）
+"""Detect nearly uniform images in a Parquet dataset.
 
-判断逻辑：
-  - 将图片转为灰度，计算像素标准差 (std)
-  - std < STD_THRESHOLD（默认 5）视为"近似纯色"（包括纯白/纯黑/纯灰）
-  - 同时检测极端均值：mean < 5（极暗/纯黑）或 mean > 250（极亮/纯白）
+Convert each image to grayscale and compare its pixel standard deviation with
+the configured threshold (default: 5). Also detect extreme mean intensities
+below 5 or above 250.
 
-用法：
-  python check_corrupt_images.py --parquet_path ./train.parquet
-  python check_corrupt_images.py --parquet_path ./train.parquet --std_threshold 8 --save_indices bad_indices.txt
-"""
+Examples:
+    python -m mira.data.preparation.check_dataset_corrupt --parquet_path train.parquet
+    python -m mira.data.preparation.check_dataset_corrupt --parquet_path train.parquet --std_threshold 8 --save_indices bad_indices.txt"""
 
 import argparse
 import io
@@ -23,15 +20,15 @@ from tqdm import tqdm
 try:
     import PIL.Image as Image
 except ImportError:
-    raise ImportError("请安装 Pillow: pip install Pillow")
+    raise ImportError("Install Pillow with: pip install Pillow")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 图片提取
+# Image extraction.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def extract_image(images_field) -> Image.Image | None:
-    """从 parquet row 的 images 字段中提取第一张 PIL.Image。"""
+    """Extract the first PIL image from a Parquet row image field."""
     if images_field is None:
         return None
 
@@ -43,14 +40,14 @@ def extract_image(images_field) -> Image.Image | None:
 
     img = imgs[0]
 
-    # bytes dict（HuggingFace datasets.Image 序列化格式）
+    # Serialized Hugging Face image dictionary.
     if isinstance(img, dict) and 'bytes' in img and img['bytes']:
         try:
             return Image.open(io.BytesIO(img['bytes'])).convert('RGB')
         except Exception:
             return None
 
-    # 已经是 PIL.Image
+    # Already decoded as a PIL image.
     if hasattr(img, 'convert'):
         try:
             return img.convert('RGB')
@@ -68,14 +65,11 @@ def extract_image(images_field) -> Image.Image | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 损坏判断
+# Image corruption checks.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def is_corrupt(img: Image.Image, std_threshold: float = 5.0) -> tuple[bool, str]:
-    """
-    判断图片是否损坏（近似纯色）。
-    返回 (is_bad, reason)。
-    """
+    """Return whether an image is nearly uniform and the reason for that decision."""
     gray = np.array(img.convert('L'), dtype=np.float32)
     std  = float(gray.std())
     mean = float(gray.mean())
@@ -96,13 +90,13 @@ def is_corrupt(img: Image.Image, std_threshold: float = 5.0) -> tuple[bool, str]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--parquet_path', type=str, required=True,
-                        help='待检测的 parquet 文件路径（train.parquet 或 test.parquet）')
+                        help='Parquet file to inspect, such as train.parquet or test.parquet.')
     parser.add_argument('--std_threshold', type=float, default=5.0,
-                        help='像素灰度标准差低于此值视为损坏（默认 5）')
+                        help='Flag images with a grayscale standard deviation below this threshold (default: 5).')
     parser.add_argument('--save_indices', type=str, default=None,
-                        help='将损坏样本的行号保存到此文件（可选）')
+                        help='Optional output path for indices of flagged samples.')
     parser.add_argument('--show_examples', type=int, default=10,
-                        help='打印前 N 个损坏样本的详情')
+                        help='Display details for the first N flagged samples.')
     args = parser.parse_args()
 
     print(f"Loading: {args.parquet_path}")
@@ -123,7 +117,7 @@ def main():
 
         corrupt, reason = is_corrupt(img, std_threshold=args.std_threshold)
         if corrupt:
-            # 尝试获取题目片段方便排查
+            # Include a question excerpt to help identify the sample.
             extra = row.get('extra_info', {})
             if isinstance(extra, str):
                 try:
@@ -133,7 +127,7 @@ def main():
             q = str(extra.get('question', ''))[:60] if isinstance(extra, dict) else ''
             bad_rows.append((i, reason, q))
 
-    # ── 统计 ──
+    # Summary statistics.
     n_bad = len(bad_rows)
     n_no_img = sum(1 for _, r, _ in bad_rows if r == "no_image")
     n_black  = sum(1 for _, r, _ in bad_rows if 'black' in r)

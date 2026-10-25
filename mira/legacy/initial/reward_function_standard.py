@@ -16,27 +16,27 @@ async def re_hard_match(answer: str):
     if not answer:
         return None
     s = answer.strip()
-    # 1. 明确的指示词 + 字母 (最高优先级)
+    # 1. Explicit answer cue followed by an option letter, in priority order.
     phrase_pattern = re.compile(
         r'(?i)(?:综上所述|总结|最终|答案|选择|choose|is|are|是|为|答案[:：]|选项)[:：\s]*([A-F])\b'
     )
     m = phrase_pattern.findall(s)
-    if m: return m[-1].upper() # 取最后一个出现的明确答案
-    # 2. Markdown 加粗形式 **A** (高优先级)
+    if m: return m[-1].upper()  # Use the final explicitly stated answer.
+    # 2. Markdown-bold option letter.
     md_pattern = re.compile(r'(?i)\*\*\s*([A-F])\s*\*\*')
     m = md_pattern.findall(s)
     if m: return m[-1].upper()
-    # 3. 括号/标点包围
+    # 3. Option letter surrounded by brackets or punctuation.
     bracket_pattern = re.compile(
         r'(?:(?<=\()|(?<=\[)|(?<=\{)|(?<=（)|(?<=【))\s*([A-Fa-f])\s*(?=[\)\]\}）】])'
     )
     m = bracket_pattern.findall(s)
     if m: return m[-1].upper()
-    # 4. 字母 + 标点/空白 (如 "C.", "D:", "A ")
+    # 4. Option letter followed by punctuation or whitespace.
     punct_pattern = re.compile(r'(?i)\b([A-F])(?=[\.\)\]：:）】\s]|$)')
     m = punct_pattern.findall(s)
     if m: return m[-1].upper()
-    # 5. 独立字母（全文本只有一个字母的情况）
+    # 5. A unique standalone option letter.
     pure_letter = re.findall(r'(?i)\b([A-F])\b', s)
     if len(set(pure_letter)) == 1:
         return pure_letter[0].upper()
@@ -45,7 +45,7 @@ async def re_hard_match(answer: str):
 
 async def chat_complete(router_address: str, chat_complete_request: dict):
     url = f"http://{router_address}/v1/chat/completions"
-    # print("正在突击欧金金")
+
     try:
         timeout = aiohttp.ClientTimeout(total=None)
         session = aiohttp.ClientSession(timeout=timeout)
@@ -334,6 +334,6 @@ if __name__ == "__main__":
 
     solution_str = """ The role of point D is key in solving this problem. vertices are arranged  that not options are perpendicular. Assumes: Connectivity of Structure D is perpendicular's A. Therefore, D is at the center of the equilateral triangle BCA, such that BD = 2, DC =  3, and triangle D is central Proper positioning ensures that AB = AC and triangles ABF and AEC similar. Hence, sum BD+DF = DC+AF = AB, or BD+DF= AB+2/3AF=5, Therefore, triangle BDF similar to triangle ABC Hence, DF= cube root of third parts of AB^2/3 DF = lastay,  d name divide lastayEasy Following formula for triangle BDE Similar to triangle ABCassumed asserting BDE= 1/3angle ABC  EF = DF/ BSINопределations a used as task similar To triangle DIFFtriangle DEF same angle ABC refers to  AE triangle of sums altags triangle BDF B = total triangle ADE object sum Segment intersecting triangle ADE simplifies to  further maximize collage categorized into angles bijection Similar triangle FBC  Using trigonometric properties of right triangles. Although this problem involves two right triangles, a solution based on trigonometric identities can be derived as follows:  .getItemValue legacy verifies that abject should then directly substitute right triangle inequal Solution of triangle ABC with the known parameters A = 72 degrees, b = 1/5/6 Afterwards the objective of finding the altitude and similiar triangle ACB where 1/5 correct as ~ (triangle) triangle  similarity  [Triangle] BDF similarity triangle ABCwe can determine the ratio of the segments it next simplifies into b / alt1 para triangle triangle 1 /2 drop  Purpose Confirming BDFDBF = C_2 and BC = 3/3 verticalup / 3 Hence DF = SIGI triangle ABCIn same as the sum triangle BDFDC grounding trial either angles BDE similMS DDF slope DAFC dropconfirmationCAB triangleAl)= (Sigrantangle triangle DBC squareComparison solving KIND copyrights commonMSo BDFDC  This can resolve triangle BFLSAC Triangle DILSO symbolicate DFFDI triangle Altitude as [missing] = the altitude side = signice Thus, triangle FDE in x divisions powerExplicity set 6 + ratio of result in '.6' triangular_get_first answer to </think> <think> The known information suggests that the angles ∠B and ∠FDE in triangle FDE are congruent, which indicates that triangle FDE is similar to triangle ACB. According to the property of similar triangles, the ratio of the corresponding sides of similar triangles is equal, and the ratio of the corresponding heights of similar triangles is also equal. Assume that the ratio of the sides AB and AC is the same ratio of BC and FD where AC=2/3AB and BC=2/3FD. Required angle at E are present in spirit. A is a given angle in all triangles. Therefore, the ratio of the corresponding sides of equilateral triangle is (BC) and (FD) is 2 </think>"""
 
-    # 使用 asyncio.run() 运行异步函数
+    # Run the asynchronous score function.
     answer = asyncio.run(compute_correction_reward("编的", solution_str, "A", extra_info, test_ip, None))
     print(f"Score: {answer}")

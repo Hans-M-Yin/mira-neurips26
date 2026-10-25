@@ -328,7 +328,7 @@ class AgentLoopBase(ABC):
 
             placeholder = "<|placeholder|>"
             while image_token in texts[i]:
-                assert img_index < len(image_sizes_hw), f"黑马: {img_index} {len(image_sizes_hw)} {texts[i].replace(chr(10), chr(32))}"
+                assert img_index < len(image_sizes_hw), f"Image placeholder index {img_index} exceeds the {len(image_sizes_hw)} available images: {texts[i].replace(chr(10), chr(32))}"
                 H, W = image_sizes_hw[img_index]
 
                 grid_t = 1 // temporal_patch_size
@@ -682,7 +682,7 @@ class AgentLoopWorker:
         #   e.g., [1,1,1,1,1,1,1,(tool start),0,0(tool end),1,1,0,0,0,0]
         # - position_ids: sequential positions for tokens, starting at 0
         #   e.g., [0,0,0,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,0,0,0]
-        # logger.warning("@@@@@@@@@@@@ 5.我嫩爹")
+
 
         # TODO(wuxibin): remove padding and use tensordict.
         # import time
@@ -884,7 +884,7 @@ class AgentLoopWorker:
                 batch=batch,
                 non_tensor_batch=non_tensor_batch,
             )
-            # logger.warning("@@@@@@@@@@2 这里应该走过了才对啊 @@@@@@@@@@@@@@@@")
+
             reward_start_time = time.perf_counter()
             result = await self.reward_loop_worker.compute_score.remote(data)
             output.metrics.reward_compute = time.perf_counter() - reward_start_time

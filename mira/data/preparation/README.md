@@ -3,7 +3,7 @@
 This directory contains the project's data-processing source. Generated datasets,
 sample images, metadata, selection decisions, and validation reports are excluded.
 
-`data_preprocess_v2.py` generates image descriptions, edits relevant visual details,
+`build_training_data.py` generates image descriptions, edits relevant visual details,
 verifies misleading descriptions, and writes training/validation Parquet files in
 the schema expected by the MIRA training code. Its caption model uses a local
 OpenAI-compatible service; its editing and verification model uses a configured
@@ -15,7 +15,7 @@ For example, after starting an authorized caption-model service:
 ```bash
 export AZURE_OPENAI_API_KEY=...       # Set locally; do not commit credentials.
 export AZURE_OPENAI_ENDPOINT=...      # Your deployment endpoint.
-python mira/data/preparation/data_preprocess_v2.py \
+python mira/data/preparation/build_training_data.py \
   --dataset_path /path/to/input_dataset \
   --local-api-url http://localhost:8000/v1 \
   --target_model YOUR_SERVED_CAPTION_MODEL \

@@ -585,7 +585,7 @@ def prepare_generation_inputs(
         messages = spec.prepare_messages(data_item)
         prompt = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         
-        # 通用视觉提取：直接从 message 中拿取 PIL Image 或者路径，屏蔽掉特定模型的预处理逻辑
+        # Read PIL images or paths directly without model-specific preprocessing.
         image_data = []
         for msg in messages:
             if "content" in msg and isinstance(msg["content"], list):
@@ -593,12 +593,12 @@ def prepare_generation_inputs(
                     if isinstance(item, dict) and item.get("type") == "image":
                         image_data.append(item["image"])
         
-        # 若需要支持超过一张图片，vLLM 要求传入 list; 如果只要一张，就传本身或者单个元素的 list 都可以
+        # Pass multiple images to vLLM as a list.
         mm_data = {}
         if len(image_data) > 1:
             mm_data["image"] = image_data
         elif len(image_data) == 1:
-            # 对于单图情况，原生地传单个 PIL.Image
+            # Pass a single PIL image for the single-image case.
             mm_data["image"] = image_data[0]
 
         inputs.append(

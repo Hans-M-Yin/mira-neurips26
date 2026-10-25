@@ -1,13 +1,11 @@
-"""
-check_image_placeholder_consistency.py
-─────────────────────────────────────────────────────────────────────────────
-读取 parquet 数据集，逐样本检查 prompt 中 <image> 占位符数量
-与 images 字段中实际图片数量是否一致，并汇总报告所有不一致样本。
+"""Validate that image placeholders match the number of stored images.
 
-用法:
-  python data/check_image_placeholder_consistency.py --parquet /path/to/train.parquet
-  python data/check_image_placeholder_consistency.py --parquet /path/to/train.parquet --verbose
-"""
+Inspect each prompt and report samples whose image placeholder count differs
+from the image count.
+
+Examples:
+    python -m mira.data.preparation.check_placeholder --parquet train.parquet
+    python -m mira.data.preparation.check_placeholder --parquet train.parquet --verbose"""
 
 import argparse
 import json
@@ -23,7 +21,7 @@ from tqdm import tqdm
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 def count_image_placeholders(prompt_field) -> int:
-    """统计 prompt messages 中 <image> 占位符的总数量。"""
+    """Count image placeholders across all prompt messages."""
     if not isinstance(prompt_field, list):
         return 0
     total = 0
@@ -34,9 +32,9 @@ def count_image_placeholders(prompt_field) -> int:
         if isinstance(content, str):
             total += content.count("<image>")
         elif isinstance(content, list):
-            # 多模态格式：content 是 [{"type":"image",...}, {"type":"text",...}]
-            # 这种格式下图片已嵌入 content，不用 <image> 占位符
-            # 但也统计一下 text 块里有没有 <image>
+            # Multimodal content contains image and text blocks.
+            # Embedded image blocks do not require textual image placeholders.
+            # Also count image placeholders inside text blocks.
             for block in content:
                 if isinstance(block, dict) and block.get("type") == "text":
                     total += block.get("text", "").count("<image>")
@@ -44,13 +42,13 @@ def count_image_placeholders(prompt_field) -> int:
 
 
 def count_actual_images(images_field) -> int:
-    """统计 images 字段里实际图片的数量（兼容多种存储格式）。"""
+    """Count stored images across the supported image representations."""
     if images_field is None:
         return 0
     if isinstance(images_field, list):
-        # 过滤掉 None 和空值
+        # Remove missing and empty image values.
         return sum(1 for img in images_field if img is not None)
-    return 1  # 非 list 则认为是单张图片
+    return 1  # Treat a non-list value as a single image.
 
 
 def get_source_idx(extra_info) -> int:

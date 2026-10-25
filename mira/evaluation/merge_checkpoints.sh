@@ -1,65 +1,65 @@
 #!/bin/bash
 
 # ==========================================================
-# Checkpoint 合并脚本（支持指定 EXP）
+# Merge checkpoints for all or selected experiments.
 #
-# 用法:
-# 1. 默认处理全部
+# Usage:
+# 1. Process all experiments by default.
 #    bash merge_checkpoints.sh
 #
-# 2. 指定项目
+# 2. Select a project.
 #    bash merge_checkpoints.sh mira
 #
-# 3. 指定保存目录
+# 3. Select an output directory.
 #    bash merge_checkpoints.sh mira ./merged_checkpoints
 #
-# 4. 指定 EXP（单个或多个）
+# 4. Select one or more experiments.
 #    bash merge_checkpoints.sh mira ./merged_checkpoints "exp1 exp2"
 # ==========================================================
 
-# 1. 基础配置
+# 1. Base configuration.
 CHECKPOINTS_BASE="./checkpoints"
 PROJECT_NAME="${1:-mira}"
 TARGET_ROOT="${2:-./merged_checkpoints}"
-SELECTED_EXPS="$3"   # ⭐ 新增：用户指定 EXP
+SELECTED_EXPS="$3"   # Optional user-selected experiments.
 
-# 处理路径中的 ~
+# Expand a leading home-directory marker.
 CHECKPOINTS_BASE="${CHECKPOINTS_BASE/#\~/$HOME}"
 TARGET_ROOT="${TARGET_ROOT/#\~/$HOME}"
 
-# 2. 检查项目路径
+# 2. Validate the project directory.
 PROJECT_PATH="$CHECKPOINTS_BASE/$PROJECT_NAME"
 if [ ! -d "$PROJECT_PATH" ]; then
-    echo "错误: 项目路径 '$PROJECT_PATH' 不存在！"
+    echo "Error: project directory '$PROJECT_PATH' does not exist."
     exit 1
 fi
 
 mkdir -p "$TARGET_ROOT"
 
 echo "--------------------------------------------------------"
-echo "正在扫描项目: $PROJECT_NAME"
-echo "源地址: $PROJECT_PATH"
+echo "Scanning project: $PROJECT_NAME"
+echo "Source directory: $PROJECT_PATH"
 echo "--------------------------------------------------------"
 
-# 3. 确定要处理的 EXP 列表
+# 3. Select the experiments to process.
 if [ -z "$SELECTED_EXPS" ]; then
     EXP_LIST=$(ls "$PROJECT_PATH")
 else
     EXP_LIST=$SELECTED_EXPS
 fi
 
-# 4. 遍历 EXP
+# 4. Iterate over experiments.
 for EXP_NAME in $EXP_LIST; do
     EXP_PATH="$PROJECT_PATH/$EXP_NAME"
 
     if [ ! -d "$EXP_PATH" ]; then
-        echo ">>> 跳过: $EXP_NAME (目录不存在)"
+        echo ">>> Skipping $EXP_NAME: directory does not exist."
         continue
     fi
 
-    echo "发现实验: $EXP_NAME"
+    echo "Found experiment: $EXP_NAME"
 
-    # 5. 遍历 STEP
+    # 5. Iterate over checkpoints.
     for STEP_PATH in "$EXP_PATH"/*; do
         if [ -d "$STEP_PATH" ]; then
             STEP_NAME=$(basename "$STEP_PATH")
@@ -67,7 +67,7 @@ for EXP_NAME in $EXP_LIST; do
             TARGET_DIR_NAME="${EXP_NAME}_${STEP_NAME}"
             FULL_TARGET_PATH="$TARGET_ROOT/$TARGET_DIR_NAME"
 
-            echo "  [处理中] $STEP_NAME -> $TARGET_DIR_NAME"
+            echo "  [Processing] $STEP_NAME -> $TARGET_DIR_NAME"
 
             python -m verl.model_merger merge \
                 --backend fsdp \
@@ -75,9 +75,9 @@ for EXP_NAME in $EXP_LIST; do
                 --target_dir "$FULL_TARGET_PATH"
 
             if [ $? -eq 0 ]; then
-                echo "  [成功]"
+                echo "  [Success]"
             else
-                echo "  [失败] 跳过..."
+                echo "  [Failed] Skipping..."
             fi
             echo "  ---"
         fi
@@ -85,4 +85,4 @@ for EXP_NAME in $EXP_LIST; do
 done
 
 echo "--------------------------------------------------------"
-echo "处理完成。"
+echo "Processing complete."

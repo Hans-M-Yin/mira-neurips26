@@ -50,7 +50,7 @@ class AdaptiveRatioDataset(RLHFDataset):
         max_samples: int = -1,
     ):
         super().__init__(data_files, tokenizer, config, processor, max_samples)
-        print("################################################################################################## Hello#")
+        print("Initializing the adaptive dataset.")
         # Configuration
         self._target_ratio = config.get("adaptive_target_ratio", 2.0)
         self._ema_alpha = config.get("adaptive_ema_alpha", 0.1)

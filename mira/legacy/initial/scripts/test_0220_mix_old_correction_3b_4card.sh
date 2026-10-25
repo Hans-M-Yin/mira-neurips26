@@ -1,7 +1,7 @@
 ENGINE=${1:-vllm}
 # Run on 901b2136
-# 还是用老的Correction reward，去掉acc条件试试？反正现在correction的条件严苛，不一定会导致repetition，相较于0218，repetition_threhold从0.95降低到0.7，
-# 这一次去掉了acc条件，别的同test0219_mix_old_correction
+# Historical trial: compare the earlier correction reward with a lower repetition threshold.
+# This run removed the correctness gate; other settings follow the preceding trial.
 VLLM_USE_V1=1 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     data.train_files="${TRAIN_FILE:?Set TRAIN_FILE to the training parquet}" \

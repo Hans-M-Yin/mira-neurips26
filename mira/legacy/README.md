@@ -18,3 +18,8 @@ packages, while these historical implementations are retained for reference.
 Historical scripts preserve their experiment settings and require the corresponding
 user-provided data/model paths. For current training, use the root README's launchers.
 Private data, checkpoints, outputs, and local analysis utilities remain excluded.
+
+Historical reward variants use descriptive filenames: `weighted_correction` for
+the additional correction weighting and `accuracy_variant` for alternative answer
+reward weighting. Filename spelling corrections do not change the stored experiment
+identifiers, dataset choices, or optimization settings.

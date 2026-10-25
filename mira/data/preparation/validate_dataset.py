@@ -1,21 +1,11 @@
-"""
-数据集质量验证脚本 validate_dataset.py
+"""Validate deceptive-context training data.
 
-验证维度：
-  1. 盲测通过率       — 文本LLM看错Caption是否答错（确认改动有效）
-  2. 正确Caption充分性 — 正确Caption在盲测下是否引导答对（确认Caption信息量足够）
-  3. RULE0违规检测    — 修改内容是否动了题目文本中直接给出的已知量（自动字符串匹配）
-  4. Oracle欺骗性测试 — 强VLM（带图）看到错误Caption后是否被骗（判断错误是否足够隐蔽）
-  5. 修改分布统计     — K值分布、type分布、修改前后长度等
+Checks include blind-test answer flips, correct-caption sufficiency, edits to
+facts explicitly stated in the question, image-aware oracle susceptibility,
+and sample/edit/length distributions.
 
-用法：
-  python validate_dataset.py \
-      --parquet_path ./preprocessed_dataset/xxx/train.parquet \
-      --api_key YOUR_KEY \
-      --api_url https://yunwu.ai/v1 \
-      --sample_n 100 \
-      --run_oracle   # 是否运行第4步（较慢，会消耗图片token）
-"""
+Example:
+    python -m mira.data.preparation.validate_dataset --parquet_path train.parquet --api_url https://api.openai.com/v1 --sample_n 100 --run_oracle"""
 
 import argparse
 import json
@@ -35,15 +25,15 @@ from tqdm import tqdm
 # ─────────────────────────────────────────────────────────────────────────────
 
 def normalize_answer(ans: str) -> str:
-    """粗粒度规范化，用于比较两个答案是否相同"""
+    """Normalize an answer for a coarse equivalence comparison."""
     if ans is None:
         return ""
     ans = ans.strip().lower()
-    # 提取括号内的选项字母（如 (A), （B）等）
+    # Extract an option letter from surrounding brackets.
     m = re.search(r'\(?([a-d])\)?', ans)
     if m:
         return m.group(1)
-    return ans[:20]  # 取前20字符作为粗粒度比较
+    return ans[:20]  # Compare the first 20 characters as a coarse fallback.
 
 
 def extract_answer_tag(text: str) -> str | None:
@@ -54,7 +44,7 @@ def extract_answer_tag(text: str) -> str | None:
 
 
 def blind_test(client, model, question, caption):
-    """文本盲测：只给Caption和Question，不给图片"""
+    """Run a text-only blind test with the caption and question, without the image."""
     prompt = f"""I have a question related to an image. The image is not available, but I have a caption describing the image.
 Please answer the question based ONLY on the caption below.
 Think step by step, then give your final answer in <answer></answer> tags.
@@ -72,7 +62,7 @@ Think step by step, then give your final answer in <answer></answer> tags.
 
 
 def oracle_test(client, model, question, caption, image_b64):
-    """Oracle测试：强VLM拿到图+错误Caption，看是否被骗"""
+    """Test whether an image-aware oracle follows the misleading caption."""
     prompt = f"""You are given an image and a caption that describes the image.
 The caption may or may not contain errors compared to the actual image.
 
@@ -103,16 +93,14 @@ Your task:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Check 1: 盲测通过率（Answer Flip Rate）
+# Check 1: blind-test answer flip rate.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def check_blind_tests(samples, client, model, max_workers=8):
-    """
-    对 type==1 的样本进行盲测：
-    - 用正确Caption盲测 → 期望答对 (sufficiency check)
-    - 用错误Caption盲测 → 期望答错 (flip check)
-    返回每个样本的结果字典。
-    """
+    """Run blind tests on augmented samples.
+
+    The correct caption should lead to the correct answer, while the misleading
+    caption should change the answer. Return the results for each sample."""
     results = []
 
     def process(sample):
@@ -140,7 +128,7 @@ def check_blind_tests(samples, client, model, max_workers=8):
         }
 
         if sample_type == 1 and caption_correct and caption_modified:
-            # 正确Caption盲测
+            # Blind test with the correct caption.
             try:
                 resp_correct = blind_test(client, model, question, caption_correct)
                 ans_correct = extract_answer_tag(resp_correct)
@@ -151,7 +139,7 @@ def check_blind_tests(samples, client, model, max_workers=8):
             except Exception as e:
                 result['sufficiency_passed'] = None
 
-            # 错误Caption盲测
+            # Blind test with the misleading caption.
             try:
                 resp_modified = blind_test(client, model, question, caption_modified)
                 ans_modified = extract_answer_tag(resp_modified)
@@ -173,11 +161,11 @@ def check_blind_tests(samples, client, model, max_workers=8):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Check 2: RULE 0 违规检测（Known Condition Protection）
+# Check 2: violations of known-condition protection.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _to_python_list(obj):
-    """将 parquet 读回的 numpy array / scalar 递归转为原生 Python 类型。"""
+    """Recursively convert NumPy arrays and scalars to native Python values."""
     if isinstance(obj, np.ndarray):
         return [_to_python_list(x) for x in obj.tolist()]
     if isinstance(obj, (np.generic,)):  # numpy scalar
@@ -188,11 +176,10 @@ def _to_python_list(obj):
 
 
 def check_rule0_violations(samples):
-    """
-    自动检测：modifications 中的 'before' 内容里的数字是否出现在题目文本中。
-    若是，则说明改的是题目直接给出的已知量，违反了 RULE 0。
-    parquet 读回后 modify_info 可能是 numpy array，统一做安全转换。
-    """
+    """Flag edits to numeric facts already present in the question.
+
+    Normalize Parquet-loaded modification metadata before checking whether the
+    original numbers appear in the question text."""
     violations = []
     clean = []
 
@@ -210,10 +197,10 @@ def check_rule0_violations(samples):
         question = str(extra.get('question', ''))
         modify_info = extra.get('modify_info', None)
 
-        # ── 安全转换：numpy array / NaN / None → Python list ──
+        # Normalize arrays and missing values to native Python objects.
         if modify_info is None:
             continue
-        # pandas 读 parquet 后 None 有时变成 float NaN
+        # Parquet loading can convert missing values to floating-point NaN.
         try:
             if isinstance(modify_info, float):  # NaN
                 continue
@@ -230,7 +217,7 @@ def check_rule0_violations(samples):
                 continue
             before_text = str(mod[0])
             after_text = str(mod[1])
-            # 启发式：before_text 里的数字若出现在题目文本中，视为 RULE0 违规
+            # Treat edits to numbers explicitly present in the question as possible rule violations.
             numbers_in_before = re.findall(r'\d+\.?\d*', before_text)
             for num in numbers_in_before:
                 if num in question:
@@ -252,19 +239,16 @@ def check_rule0_violations(samples):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Check 3: Oracle 欺骗性测试（带图，判断错误是否足够隐蔽）
+# Check 3: image-aware oracle evaluation of misleading captions.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def check_oracle_deception(samples, client, oracle_model, max_workers=4):
-    """
-    用强VLM（带图）测试：给它错误Caption + 图片，看它是:
-    (a) 被骗 → 答错（说明错误足够隐蔽，数据质量高）
-    (b) 纠正 → 答对（说明错误太明显，模型直接从图片纠正了）
+    """Evaluate misleading captions with an image-aware oracle.
 
-    这是数据质量的黄金标准：
-    - 理想情况：Blind test答错 + Oracle被骗 → 高质量欺骗性样本
-    - 次优情况：Blind test答错 + Oracle纠正 → 错误明显但仍有训练价值
-    """
+    An incorrect answer indicates that the visual error remains deceptive even
+    with the image available. A corrected answer indicates a more obvious error.
+    Blind-test failures that also mislead the oracle are the strongest examples;
+    samples corrected by the oracle can still provide a recovery signal."""
     import base64
     import io
 
@@ -282,13 +266,13 @@ def check_oracle_deception(samples, client, oracle_model, max_workers=4):
         gt_answer = str(extra.get('answer', '')).strip().lower()
         caption_modified = extra.get('caption_modified', '')
 
-        # 提取图片
+        # Extract images.
         images = sample.get('images', [])
         if not images:
             return None
 
         try:
-            # 图片可能是PIL.Image或bytes
+            # Images may already be decoded or stored as bytes.
             img = images[0] if isinstance(images, list) else images
             if hasattr(img, 'save'):
                 buf = io.BytesIO()
@@ -327,14 +311,14 @@ def check_oracle_deception(samples, client, oracle_model, max_workers=4):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Check 4: 统计分布分析
+# Check 4: distribution statistics.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def analyze_distribution(df):
-    """分析数据集的整体分布情况"""
+    """Summarize sample-type, edit-count, and caption-length distributions."""
     stats = {}
 
-    # Type分布
+    # Sample-type distribution.
     def get_type(row):
         extra = row.get('extra_info', {})
         if isinstance(extra, str):
@@ -351,7 +335,7 @@ def analyze_distribution(df):
     stats['type1_ratio'] = type_counts.get(1, 0) / len(df)
     stats['type0_ratio'] = type_counts.get(0, 0) / len(df)
 
-    # K分布（num_modify）
+    # Number-of-edits distribution.
     def get_num_modify(row):
         extra = row.get('extra_info', {})
         if isinstance(extra, str):
@@ -365,7 +349,7 @@ def analyze_distribution(df):
     k_counts = Counter(num_modifies)
     stats['k_distribution'] = dict(k_counts)
 
-    # Caption长度分析
+    # Caption-length statistics.
     def get_caption_lengths(row):
         extra = row.get('extra_info', {})
         if isinstance(extra, str):
@@ -406,7 +390,7 @@ def main():
     parser.add_argument("--blind_model", type=str, default="gpt-4.1-mini",
                         help="Text-only model for blind tests")
     parser.add_argument("--oracle_model", type=str, default="gpt-4.1",
-                        help="Vision model for oracle tests (带图，消耗更多token)")
+                        help="Image-aware oracle model; uses additional image tokens.")
     parser.add_argument("--sample_n", type=int, default=100,
                         help="Number of type=1 samples to validate")
     parser.add_argument("--run_oracle", action="store_true",
@@ -438,7 +422,7 @@ def main():
     print(f"  Avg correct cap len : {dist_stats.get('avg_caption_correct_len', 0):.0f} chars")
     print(f"  Avg modified cap len: {dist_stats.get('avg_caption_modified_len', 0):.0f} chars")
 
-    # 采样 type=1 样本
+    # Sample augmented rows.
     all_rows = df.to_dict('records')
 
     def get_type_from_row(row):
@@ -463,7 +447,7 @@ def main():
         'sample_n': sample_n,
         'violations': len(violations),
         'violation_rate': violation_rate,
-        'examples': violations[:5]  # 保存前5个违规例子
+        'examples': violations[:5]  # Keep the first five violation examples.
     }
     print(f"  Sampled: {sample_n} | Violations: {len(violations)} | Rate: {violation_rate:.2%}")
     if violations:
@@ -486,7 +470,7 @@ def main():
     flip_rate = sum(1 for r in flip_results if r['flip_passed']) / len(flip_results) if flip_results else 0
     suff_rate = sum(1 for r in suff_results if r['sufficiency_passed']) / len(suff_results) if suff_results else 0
 
-    # 同时通过两项的（既充分又能骗到）
+    # Count examples passing both caption sufficiency and answer-flip checks.
     both_passed = [r for r in type1_results
                    if r.get('flip_passed') and r.get('sufficiency_passed')]
     both_rate = len(both_passed) / len(type1_results) if type1_results else 0
@@ -496,7 +480,7 @@ def main():
         'flip_rate': flip_rate,
         'sufficiency_rate': suff_rate,
         'both_passed_rate': both_rate,
-        'details': blind_results[:20]  # 前20个详情
+        'details': blind_results[:20]  # Keep the first 20 detailed results.
     }
 
     print(f"  Samples tested          : {len(type1_results)}")
@@ -504,7 +488,7 @@ def main():
     print(f"  Caption sufficiency rate: {suff_rate:.2%}  (correct caption → right answer)")
     print(f"  Both passed (gold)      : {both_rate:.2%}  (ideal samples for training)")
 
-    # 输出一些失败案例
+    # Display selected failure examples.
     failed_flip = [r for r in flip_results if not r['flip_passed']][:3]
     if failed_flip:
         print(f"\n  ⚠ Flip FAIL examples (modification had no effect):")
@@ -519,10 +503,10 @@ def main():
             print(f"    Q: {r['question']}")
             print(f"    GT: {r['gt_answer']} | Blind correct answer: {r['blind_correct_answer']}")
 
-    # ── Oracle Test（可选）────────────────────────────────────────────────
+    # Optional oracle evaluation.
     if args.run_oracle:
         print_section("Check 4: Oracle Deception Test (VLM + image)")
-        # 从已通过盲测的样本中抽取oracle测试样本（最多30个，省token）
+        # Evaluate at most 30 blind-test successes with the image-aware oracle.
         oracle_sample_n = min(30, sample_n)
         oracle_samples = random.sample(sampled, oracle_sample_n)
         oracle_results = check_oracle_deception(

@@ -409,7 +409,7 @@ class RLHFDataset(Dataset):
                 "reason: _read_files_and_tokenize() not called or Parquet file loading failed"
             )
         if self.dataframe is None:
-            raise ValueError("RLHFDataset dataframe 为 None!")
+            raise ValueError("RLHFDataset dataframe is not initialized.")
 
         total_samples = len(self.dataframe)
         print(f"total_samples: {total_samples}")

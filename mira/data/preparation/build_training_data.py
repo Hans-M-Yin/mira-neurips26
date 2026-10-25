@@ -1,19 +1,12 @@
-"""
-改进版数据预处理 v2
+"""Construct training data with targeted visual-context perturbations.
 
-核心改进（相比 data_preprocess.py）：
-1. [Known Condition Protection] 严格禁止修改题目文本中直接给出的已知量（数值、条件）。
-   只允许修改通过视觉观察推导出的信息。
-2. [Reasoning Path Tracing] 改错前，模型必须先分析解题所需的核心视觉证据链，
-   再针对链上的关键节点进行修改，确保改动位于"解题必经路径"上。
-3. [Domain-Aware Examples] 区分 geometry / chart / logic / real-scene 四种题型，
-   给出领域匹配的错误改造示例，避免模型使用"改数字"这种省力但无效的捷径。
-4. [Option-Targeted Editing] 如果题目是选择题，要求修改后的 Caption 必须逻辑确凿地
-   指向某一个具体的错误干扰选项，而非模糊地让答案"变错"。
-5. [Upgraded Blind Verification] 盲测验证升级：不仅检查最终答案，还检查盲测模型的
-   推理理由中是否真正引用了被修改的那个视觉点，确保改动是"因果性"的。
-6. [输出格式完全不变] 所有数据字段与 data_preprocess.py 完全兼容。
-"""
+The pipeline protects facts explicitly given in the question, identifies the
+visual evidence needed to solve it, and edits relevant observations rather than
+known conditions. Domain-specific examples cover geometry, charts, logic, and
+real scenes. For multiple-choice tasks, edited captions target an incorrect
+option. Blind verification checks both answer changes and whether the reasoning
+uses the edited visual detail. The output schema remains compatible with the
+existing training data format."""
 
 from datetime import datetime
 
@@ -42,13 +35,13 @@ from pathlib import Path
 # Keep the multi-process runtime log on the local disk instead of the cwd.
 LOCAL_LOG_DIR = Path("/tmp/verl_preprocess_logs")
 LOCAL_LOG_DIR.mkdir(parents=True, exist_ok=True)
-LOCAL_LOG_PATH = str(LOCAL_LOG_DIR / "data_preprocess_v2.log")
+LOCAL_LOG_PATH = str(LOCAL_LOG_DIR / "build_training_data.log")
 logger = setup_logger(__name__, LOCAL_LOG_PATH)
 
 REQUEST_EXTRA_HEADERS = {}
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Prompt 1: 生成 Caption（与原版基本一致，略加强调"视觉推导"与"已知条件区分"）
+# Prompt 1: caption generation with visual-evidence and known-condition constraints.
 # ─────────────────────────────────────────────────────────────────────────────
 prompts_create_caption = {
     "system_text": """You are a meticulous visual information extractor.
@@ -75,7 +68,7 @@ Your response:"""
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Prompt 2: 改错 Caption（核心改进，三阶段推理 + 领域感知 + 选项锚定）
+# Prompt 2: edit visual details using domain-specific and option-targeted constraints.
 # ─────────────────────────────────────────────────────────────────────────────
 prompts_edit_caption = {
     "system_text": """You are a careful visual reasoning analyst.""",
@@ -190,7 +183,7 @@ Your output:
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Dataset prompt（与原版完全相同，保持训练格式兼容）
+# Keep the dataset prompt compatible with the training format.
 # ─────────────────────────────────────────────────────────────────────────────
 prompt_dataset_system = """
 You are a helpful assistant.\nYou FIRST think about the reasoning process as an internal monologue and then provide the final answer. The reasoning process MUST BE enclosed within <think> </think> tags. The final answer (single word or few words) MUST BE put in <answer></answer>.
@@ -343,9 +336,9 @@ def process_edit_response(edit_response, **kwargs):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 升级版盲测验证：双重检查
-#   Check 1: 盲测答案是否改变（与原版相同）
-#   Check 2: 盲测推理理由中是否真正引用了被修改的视觉点（因果性检验）
+# Blind verification checks both the answer flip and its visual cause.
+# Check 1: determine whether the blind-test answer changed.
+# Check 2: verify that the reasoning cites the edited visual detail.
 # ─────────────────────────────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────
 # Retry Helper for API Robustness
@@ -387,10 +380,10 @@ def init_worker(azure_client_kwargs, local_client_kwargs, lock, next_slot, qpm):
     init_rate_limiter(lock, next_slot, qpm)
 
 def safe_chat_create(client_instance, messages, model, max_retries=5, base_delay=3, **kwargs):
-    """
-    带有指数退避的网络请求保险函数。
-    防止 API 余额耗尽、超时、限流等问题导致进程直接崩溃。
-    """
+    """Call the remote service with exponential backoff.
+
+    Retry API failures such as timeouts, rate limits, and temporary service errors
+    instead of terminating the worker immediately."""
     for attempt in range(max_retries):
         try:
             request_kwargs = {
@@ -627,7 +620,7 @@ def preprocess_item(item):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# transform_then_save_datasets — 与原版完全相同，保持输出格式兼容
+# Preserve the existing output format during dataset conversion.
 # ─────────────────────────────────────────────────────────────────────────────
 def transform_then_save_datasets(dataset_list, random_indices, args):
     """Save datasets.DataDict type dataset for verl post training."""
@@ -639,9 +632,9 @@ def transform_then_save_datasets(dataset_list, random_indices, args):
                 test_data = [item]
                 test_dataset = Dataset.from_list(test_data)
             except Exception as row_error:
-                print(f"第 {i} 行有问题:")
-                print(f"  数据: {item}")
-                print(f"  错误: {row_error}")
+                print(f"Invalid row {i}:")
+                print(f"  Data: {item}")
+                print(f"  Error: {row_error}")
                 for key, value in item.items():
                     print(f"  {key}: {type(value)} = {value}")
 
@@ -664,7 +657,7 @@ def transform_then_save_datasets(dataset_list, random_indices, args):
         with_indices=True,
         num_proc=8
     )
-    # ── 修复：cast 必须赋值才生效；images 列强制声明为 datasets.Image() 类型 ──
+    # Assign the cast result and explicitly declare the image feature type.
     train_features = train_dataset.features
     train_features['images'] = [datasets.Image()]
     train_dataset = train_dataset.cast(train_features)
@@ -674,8 +667,8 @@ def transform_then_save_datasets(dataset_list, random_indices, args):
         with_indices=True,
         num_proc=8
     )
-    # ── test 集用自己的 features 而非 train 的，避免小测试集 null vs string 类型冲突 ──
-    # （测试集只有 1%，可能全是 type=0 样本，导致 caption_modified 等字段为 null 类型）
+    # Use the test split features to avoid null/string conflicts in small splits.
+    # A small test split can contain only clean samples with null caption metadata.
     test_features = test_dataset.features
     test_features['images'] = [datasets.Image()]
     test_dataset = test_dataset.cast(test_features)
@@ -684,7 +677,7 @@ def transform_then_save_datasets(dataset_list, random_indices, args):
     save_dir = os.path.join(args.save_dir, args.experiment_name + f"_{args.target_model}_" + current_time + (
         "test" if args.test else ""))
     os.makedirs(save_dir, exist_ok=True)
-    print(f"保存路径：{save_dir}")
+    print(f"Output directory: {save_dir}")
     train_output = os.path.join(str(save_dir), "train.parquet")
     test_output = os.path.join(str(save_dir), "test.parquet")
     train_dataset.to_parquet(train_output)
@@ -763,7 +756,7 @@ def transform_then_save_datasets(dataset_list, random_indices, args):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# make_map_fn — 与原版完全相同，保持训练 prompt 格式兼容
+# Keep the mapping function compatible with the training prompt format.
 # ─────────────────────────────────────────────────────────────────────────────
 def make_map_fn(split):
     def construct_prompt_for_training(
@@ -790,7 +783,7 @@ def make_map_fn(split):
             caption_use = caption_modified if type == 1 else caption_correct
             assert caption_use is not None
             if "<modified>" in caption_use or "<before>" in caption_use:
-                print(f"##################################又他妈错了：{caption_use}")
+                print(f"Unexpected editing markup in the selected caption: {caption_use}")
             messages.append({
                 "role": "assistant",
                 "content": prompt_dataset_assistant.format(caption=caption_use)
@@ -841,8 +834,8 @@ def make_map_fn(split):
             "extra_info": {
                 "type": _type,
                 "split": split,
-                "idx": idx,             # map 遍历序号（每批从0开始，仅供调试）
-                "source_idx": example.pop('source_idx', -1),  # 原始数据集真实 index，跨批唯一标识
+                "idx": idx,  # Batch-local sequence number, used for diagnostics only.
+                "source_idx": example.pop('source_idx', -1),  # Original dataset index, which identifies samples across batches.
                 "answer": answer,
                 "question": problem,
                 "caption_correct": example.pop('caption_correct'),
@@ -857,19 +850,16 @@ def make_map_fn(split):
 
 
 def _load_from_parquet(parquet_path, is_test, exclude_row_indices=None):
-    """
-    从已预处理的 parquet 文件中恢复原始 (question, answer, images) 字段，
-    以便重新跑 preprocess_item 生成新的 caption/edit。
-    适用场景：丢弃旧版 caption，用新 prompt 重新生成。
+    """Restore question, answer, and image fields from prepared Parquet data.
 
-    exclude_row_indices: set[int]，来自 check_corrupt_images.py 输出的 row_idx 列。
-    """
+    Use the restored rows to regenerate captions and edits. Excluded row indices
+    can be supplied from the corrupt-image checker output."""
     import io as _io
     raw = load_dataset("parquet", data_files=parquet_path, split="train")
     if is_test:
         raw = raw.select(list(range(min(10, len(raw)))))
 
-    # 过滤损坏图片行
+    # Exclude rows with corrupt images.
     if exclude_row_indices:
         keep = [i for i in range(len(raw)) if i not in exclude_row_indices]
         skipped = len(raw) - len(keep)
@@ -887,7 +877,7 @@ def _load_from_parquet(parquet_path, is_test, exclude_row_indices=None):
         question = extra.get('question', '')
         answer   = extra.get('answer', '')
 
-        # images 字段可能是 PIL.Image list 或 bytes dict list
+        # The image field can contain PIL images or serialized byte dictionaries.
         imgs = example.get('images', [])
         if imgs and isinstance(imgs[0], dict) and 'bytes' in imgs[0]:
             imgs = [Image.open(_io.BytesIO(imgs[0]['bytes']))]
@@ -905,7 +895,7 @@ def _load_from_parquet(parquet_path, is_test, exclude_row_indices=None):
         }
 
     restored = raw.map(restore, remove_columns=raw.column_names)
-    # source_idx 已在 restore 中内嵌，selected_indices 直接用顺序编号
+    # Restored rows already contain source indices; use sequential selection indices.
     selected_indices = list(range(len(restored)))
     return restored, None, selected_indices
 
@@ -919,7 +909,7 @@ def _load_dataset(path, is_test, is_part, local_cache_dir=None):
     dataset = dataset.rename_column("problem", "question")
     if is_test:
         selected_indices = list(range(0,1))
-        print(f"怎么回事？{selected_indices}")
+        print(f"Selected source indices: {selected_indices}")
 
         dataset = dataset.select(selected_indices)
         random_indices = None
@@ -940,8 +930,8 @@ def _load_dataset(path, is_test, is_part, local_cache_dir=None):
         selected_indices = list(range(len(dataset)))
         random_indices = None
 
-    # ── 注入 source_idx：原始数据集中的真实 index，跨批去重的唯一标识 ──
-    # selected_indices[i] 是经过 select 后第 i 条数据在原始数据集的位置
+    # Store the original source index for deduplication across batches.
+    # Each selected index identifies the corresponding row in the source dataset.
     def add_source_idx(example, i):
         example['source_idx'] = selected_indices[i]
         return example
@@ -1002,11 +992,11 @@ if __name__ == '__main__':
                         help='Model name served by --local-api-url for image-to-caption generation.')
     parser.add_argument("--guide_model", type=str, default=None)
     parser.add_argument("--from_parquet", action="store_true",
-                        help="从已预处理的 parquet 文件加载（丢弃旧 caption，重新生成）")
+                        help="Regenerate captions from prepared Parquet data, discarding the existing captions.")
     parser.add_argument("--exclude_indices_file", type=str, default=None,
-                        help="check_corrupt_images.py 输出的损坏图片 index 文件（仅在 --from_parquet 模式下生效）")
+                        help="Corrupt-image row indices from the image checker; used only with --from_parquet.")
     parser.add_argument("--resume_from", type=str, default=None,
-                        help="上次中断保存的 train.parquet 路径。如果提供，将自动跳过已在此文件中存在的 sample。")
+                        help="Resume from a saved training Parquet file and skip previously processed samples.")
 
     args = parser.parse_args()
     if not args.azure_endpoint:
@@ -1016,10 +1006,10 @@ if __name__ == '__main__':
     if not 0 < args.qpm <= 120:
         parser.error('--qpm must be in [1, 120].')
     args.guide_model = args.guide_model or args.model
-    # k=1 比例提高：单点改错更精准，目标明确
+    # Favor single-detail edits for more targeted perturbations.
     args.k_list = [1, 2, 3]
     args.k_weights = [0.4, 0.4, 0.2]
-    # b 高比例尝试生成错 caption，过滤失败自动降级为 type=0
+    # Attempt misleading-caption generation; failed filtering falls back to clean samples.
     args.class_weights = {"a": 0.499, "b": 0.5, "c": 0.001}
 
     k_list = args.k_list
@@ -1048,13 +1038,13 @@ if __name__ == '__main__':
     init_rate_limiter(rate_limit_lock_obj, rate_limit_next_slot_obj, args.qpm)
 
     if args.from_parquet:
-        # 从已预处理 parquet 加载：--dataset_path 指向 train.parquet
+        # Load a prepared Parquet file from the dataset-path argument.
         exclude_row_indices = set()
         if args.exclude_indices_file and os.path.exists(args.exclude_indices_file):
             with open(args.exclude_indices_file) as f:
                 for line in f:
                     line = line.strip()
-                    if not line or line.startswith('row_idx'):  # 跳过表头
+                    if not line or line.startswith('row_idx'):  # Skip the header.
                         continue
                     parts = line.split('\t')
                     try:
@@ -1069,9 +1059,9 @@ if __name__ == '__main__':
             args.dataset_path, args.test, args.part, local_cache_dir=args.local_cache_dir
         )
 
-    # ── 续传过滤：剔除已经在 checkpoint 中处理过的 source_idx ──
+    # Resume by excluding source indices already present in the checkpoint.
     if args.resume_from and os.path.exists(args.resume_from):
-        print(f"\n🔄 检测到续传缓存文件: {args.resume_from}")
+        print(f"\nResume checkpoint detected: {args.resume_from}")
         try:
             checkpoint_ds = load_dataset("parquet", data_files=args.resume_from, split="train")
             completed_source_indices = set()
@@ -1088,9 +1078,9 @@ if __name__ == '__main__':
                     
             original_len = len(dataset)
             dataset = dataset.filter(lambda x: x.get('source_idx', -1) not in completed_source_indices)
-            print(f"✅ 断点续传就绪：成功跳过 {original_len - len(dataset)} 条已处理数据！当前剩余 {len(dataset)} 条待处理数据。")
+            print(f"Resume ready: skipped {original_len - len(dataset)} processed samples; {len(dataset)} remain.")
         except Exception as e:
-            print(f"⚠️ 无法读取断点文件并恢复: {e}，将强制从头开始。")
+            print(f"Could not load the resume checkpoint: {e}; restarting from the beginning.")
 
     dataset_list = []
     type_count = {0: 0, 1: 0, 2: 0}
@@ -1116,7 +1106,7 @@ if __name__ == '__main__':
                 for res in pbar:
                     dataset_list.append(res)
                 
-                    # 更新统计
+                    # Update counters.
                     t_type = res.get('type', 0)
                     if t_type in type_count:
                         type_count[t_type] += 1
@@ -1134,13 +1124,13 @@ if __name__ == '__main__':
                         f"Type0:{r_0:.1%} Type1:{r_1:.1%} Type2:{r_2:.1%}"
                     )
     except BaseException as e:
-        print(f"\n⚠️ [紧急熔断] 检测到中断或严重错误: {e}")
-        print(f"✅ 不要惊慌！已自动启动断点保护... 当前已成功处理 {len(dataset_list)} 条数据，准备紧急封存！")
+        print(f"\nProcessing interrupted or failed: {e}")
+        print(f"Saving the {len(dataset_list)} completed samples before exiting.")
 
     if len(dataset_list) > 0:
-        print(f"增强统计：有效增强(type=1)={valid_augmentations}，"
-              f"增强失败并降级={failed_augmentations}，类型分布={type_count}")
-        print(f"开始保存 NEURIPS2026")
+        print(f"Augmentation statistics: successful augmented samples (type=1)={valid_augmentations}, "
+              f"failed augmentations converted to clean samples={failed_augmentations}, type distribution={type_count}")
+        print(f"Saving processed data")
         transform_then_save_datasets(dataset_list=dataset_list, random_indices=random_indices or [], args=args)
     else:
-        print("未处理任何数据，不进行保存。")
+        print("No completed samples to save.")
