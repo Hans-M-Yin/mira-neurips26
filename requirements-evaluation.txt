@@ -1,0 +1,10 @@
+# Minimal direct runtime dependencies for evaluation_all.py and its judge modules.
+# Pin versions after confirming the paper's inference environment.
+codetiming
+datasets
+openai
+Pillow
+qwen-vl-utils
+tqdm
+transformers
+vllm

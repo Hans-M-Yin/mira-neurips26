@@ -1,0 +1,15 @@
+LICENSE
+perception/evaluation/evaluation_all.py
+perception/evaluation/judge_freak.py
+perception/evaluation/judge_hallusionbench.py
+perception/evaluation/judge_logicvista.py
+perception/evaluation/judge_mathverse.py
+perception/evaluation/judge_mathvision.py
+perception/evaluation/judge_mathvista.py
+perception/evaluation/judge_mmmu.py
+perception/evaluation/judge_wemath.py
+.gitignore
+.env.example
+requirements-evaluation.txt
+README.md
+RELEASE_MANIFEST.txt

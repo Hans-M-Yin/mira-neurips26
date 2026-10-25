@@ -1,0 +1,16 @@
+# Local credentials and environment
+.env
+.env.*
+!.env.example
+
+# Evaluation artifacts and local model/data files
+results/
+eval_results/
+*.jsonl
+*.parquet
+*.safetensors
+*.pt
+*.pth
+checkpoints/
+__pycache__/
+*.py[cod]
