@@ -1,58 +1,43 @@
 # MIRA: Reinforcing Multimodal Reasoning via Deceptive Contextual Augmentation
 
-Official evaluation-code release for the NeurIPS 2026 paper **MIRA: Reinforcing Multimodal Reasoning via Deceptive Contextual Augmentation**.
+Official code release for the NeurIPS 2026 paper [MIRA](https://neurips.cc/virtual/2026/poster/153690).
 
-[Paper page (NeurIPS 2026)](https://neurips.cc/virtual/2026/poster/153690)
+MIRA improves multimodal reasoning by training vision-language models to recover from misleading visual context. The training pipeline combines clean and context-perturbed examples, group-wise reflection triggers, and a reward that scores answer correctness, output format, repetition, and correction of misleading details.
 
-## Abstract
+## Contents
 
-Reinforcement learning with verifiable rewards (RLVR) can improve multimodal reasoning, but a model may still over-rely on an incorrect visual interpretation and allow that error to compound during reasoning. MIRA (Misleading-context Robustness Augmentation) trains a vision-language model to recover from such errors. It constructs deceptive visual contexts by perturbing image descriptions, filters examples where the perturbation does not affect the model's answer, and uses a group-wise reflection trigger during reinforcement-learning rollouts to encourage the model to revisit visual evidence. The method uses automatically generated data rather than human-annotated chains of thought. The paper evaluates MIRA on mathematical reasoning and vision-centric benchmarks.
+- `perception/training/reward_function.py`: reward function and model-assisted correction judge used by the main training recipe.
+- `perception/training/train_mira.sh`: Qwen2.5-VL-7B GRPO training entry point.
+- `perception/training/adaptive_dataset.py`: optional dataset sampler for balancing clean and augmented examples.
+- `perception/utils/triggers.json`: reflection trigger phrases used during training.
+- `verl/trainer/ppo/rollout_corr_helper.py`: rollout-correction implementation used by this VERL fork.
+- `perception/evaluation/`: local inference and benchmark judge scripts.
 
-## Method at a glance
+This repository contains code and configuration only. It does not include model checkpoints, datasets, per-example evaluation outputs, raw experiment JSON, logs, or credentials. Obtain the training data and checkpoints from the authorized sources described by the paper and their respective licenses.
 
-1. Generate a description of the image content relevant to a question.
-2. Create a plausible but misleading perturbation and retain examples that change the model's answer.
-3. Train with a mixture of clean and augmented examples. Within rollout groups, some augmented examples receive a reflection trigger while others do not, giving the policy a relative learning signal for self-correction.
-4. Evaluate answer accuracy and visual reasoning using the benchmark pipeline in this repository.
+## Environment
 
-## Main results
+Training requires a CUDA environment with the versions of PyTorch, Transformers, vLLM, Ray, and other packages supported by this VERL revision. `requirements-training.txt` lists the direct Python dependencies. The complete VERL framework is available from the [VERL project](https://github.com/volcengine/verl); apply the MIRA-specific rollout-correction helper and configuration in this repository to a compatible VERL checkout. A multi-GPU setup is expected for the paper recipe.
 
-The paper reports results using Qwen2.5-VL-7B as the backbone. The table below reproduces the main comparison from the manuscript; scores are accuracy (%). The reported average covers the seven listed benchmarks.
+The training reward uses the configured local reward-model service supplied by VERL. Set any service credentials in your shell or a local `.env` file that is not committed. The reward endpoint and judge model are passed by the training framework; no API key is embedded in this repository.
 
-| Model | MathVista | MathVerse | MathVision | WeMath | MMMU-Pro | HallusionBench | FREAK | Average |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Qwen2.5-VL-7B | 68.2 | 46.7 | 24.3 | 61.4 | 38.5 | 65.7 | 30.0 | 47.8 |
-| MIRA | 75.2 | 53.8 | 29.0 | 70.7 | 41.0 | 69.8 | 30.6 | 52.9 |
+## Train
 
-MIRA improves the four mathematical benchmarks by an average of about 7 percentage points over the base model. The full paper contains the complete baseline comparison, ablations, and evaluation details.
-
-## Repository contents
-
-- `perception/evaluation/evaluation_all.py`: shared local-model inference, benchmark loading, and judge orchestration.
-- `perception/evaluation/judge_*.py`: benchmark-specific scoring and judging modules imported by the runner.
-- `requirements-evaluation.txt`: direct Python dependencies for this evaluation subset.
-- `.env.example`: optional runtime setting names, without credentials.
-
-This is an evaluation-code release. It does not include model checkpoints, datasets, training jobs, ablation configurations, per-example predictions, raw experiment JSON, or logs. Checkpoint availability and dataset access are governed by their respective repositories and licenses.
-
-## Setup
-
-Use an environment with vLLM and Transformers versions compatible with the selected model and your CUDA stack. Install the listed direct dependencies, configure the judge API if needed, and make the environment variables available to the process:
+Prepare the paper's training and validation Parquet files in the expected VERL format, then run:
 
 ```bash
-pip install -r requirements-evaluation.txt
-cp .env.example .env
-# Edit .env locally, then load it into the current shell:
-set -a
-source .env
-set +a
+TRAIN_FILE=/path/to/train.parquet \
+VAL_FILE=/path/to/validation.parquet \
+bash perception/training/train_mira.sh
 ```
 
-Never commit the populated `.env`. For FREAK evaluation, set `FREAK_DATASET_ID` to an authorized dataset repository.
+The default actor is `Qwen/Qwen2.5-VL-7B-Instruct`; the default reward model is `Qwen/Qwen3-VL-32B-Instruct`. Override paths and resource settings through environment variables, for example `MODEL_PATH`, `RM_MODEL_PATH`, `N_GPUS`, `OUTPUT_DIR`, `TRAIN_BATCH_SIZE`, and `MAX_RESPONSE_LENGTH`. Append Hydra overrides after the script name. Set `DATASET_ADAPTIVE_RATIO=true` to enable the optional adaptive sampler. The script stores rollout artifacts under `outputs/`, which is ignored by Git.
 
-## Run evaluation
+The release script captures the main model and optimization settings. Exact reproduction also depends on the paper's data construction, dataset versions, model access, hardware, and service configuration.
 
-From `perception/evaluation/`, provide a locally accessible checkpoint or an authorized Hugging Face model ID. The benchmark names below match the main-paper evaluation; the two MMMU-Pro subsets are selected separately by this runner.
+## Evaluate
+
+Install evaluation dependencies from `requirements-evaluation.txt`, make authorized benchmark datasets available, and run from `perception/evaluation/`:
 
 ```bash
 python evaluation_all.py \
@@ -61,17 +46,29 @@ python evaluation_all.py \
   --out-dir /path/to/local/results
 ```
 
-The runner writes predictions and judge outputs to the selected output directory. These local artifacts are excluded from version control. Use the exact benchmark splits and settings specified in the paper when reproducing a reported result.
+Set `JUDGE_API_KEY` and `JUDGE_API_BASE_URL` in the process environment for API-based judges. Evaluation outputs are written to the selected output directory and are not part of the release.
+
+## Results
+
+The paper reports the following main comparison for Qwen2.5-VL-7B (accuracy, %):
+
+| Model | MathVista | MathVerse | MathVision | WeMath | MMMU-Pro | HallusionBench | FREAK | Average |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Qwen2.5-VL-7B | 68.2 | 46.7 | 24.3 | 61.4 | 38.5 | 65.7 | 30.0 | 47.8 |
+| MIRA | 75.2 | 53.8 | 29.0 | 70.7 | 41.0 | 69.8 | 30.6 | 52.9 |
+
+See the paper for full baseline comparisons, ablations, and evaluation details.
 
 ## Citation
 
-```text
-MIRA: Reinforcing Multimodal Reasoning via Deceptive Contextual Augmentation.
-Advances in Neural Information Processing Systems (NeurIPS), 2026.
+```bibtex
+@inproceedings{mira2026,
+  title={MIRA: Reinforcing Multimodal Reasoning via Deceptive Contextual Augmentation},
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2026}
+}
 ```
-
-See the [NeurIPS paper page](https://neurips.cc/virtual/2026/poster/153690) for the final author list and citation metadata.
 
 ## License
 
-See `LICENSE` for this repository's code license. Benchmark datasets and model checkpoints remain subject to their own licenses and access terms.
+Code is released under the license in `LICENSE`. Datasets, checkpoints, and benchmark assets are governed by their own licenses and terms.

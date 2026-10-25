@@ -3,14 +3,17 @@
 .env.*
 !.env.example
 
-# Evaluation artifacts and local model/data files
+# Training/evaluation outputs and private data/checkpoints
+outputs/
+rollouts_saved/
+wandb/
 results/
 eval_results/
+checkpoints/
 *.jsonl
 *.parquet
 *.safetensors
 *.pt
 *.pth
-checkpoints/
 __pycache__/
 *.py[cod]

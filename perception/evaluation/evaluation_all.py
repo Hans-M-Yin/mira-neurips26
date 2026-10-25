@@ -895,8 +895,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir", type=str, default="results_all")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--judge-model-name", type=str, default="gpt-4o")
-    parser.add_argument("--api-key", type=str, default=os.getenv("CORRECTION_PROJECT_API_KEY"))
-    parser.add_argument("--api-url", type=str, default=os.getenv("CORRECTION_PROJECT_API_URL", "https://api.openai.com/v1"))
+    parser.add_argument("--api-key", type=str, default=os.getenv("JUDGE_API_KEY"))
+    parser.add_argument("--api-url", type=str, default=os.getenv("JUDGE_API_BASE_URL", "https://api.openai.com/v1"))
     parser.add_argument("--judge-parallel-num", type=int, default=10)
     parser.add_argument("--judge-temperature", type=float, default=0.0,
                         help="Temperature for answer extraction and LLM judging (default keeps legacy behavior).")
