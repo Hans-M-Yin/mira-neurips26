@@ -1,0 +1,5 @@
+include LICENSE LICENSE-VERL README.md
+recursive-include verl *.yaml *.json *.jinja py.typed
+include verl/version/version
+recursive-include perception *.json *.yaml *.sh
+recursive-include perception_2 *.json *.yaml *.sh *.env

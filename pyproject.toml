@@ -103,11 +103,27 @@ version = {file = "verl/version/version"}
 [tool.setuptools.package-dir]
 "" = "."
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["verl", "verl.*", "perception", "perception.*", "perception_2", "perception_2.*"]
+exclude = ["*.__pycache__", "*.__pycache__.*"]
+namespaces = true
+
 # If you need to include specific non-Python data (like YAML files or version file):
 # This is the rough equivalent of package_data={'': ['version/*'], 'verl': ['trainer/config/*.yaml']}
 [tool.setuptools.package-data]
 verl = [
+  "py.typed",
   "version/*",
   "trainer/config/*.yaml",
   "trainer/config/*/*.yaml",
+  "**/*.yaml",
+  "**/*.json",
+  "**/*.jinja",
 ]
+perception = ["configs/*.yaml", "scripts/*.sh", "*.sh"]
+"perception.utils" = ["*.json"]
+"perception.training" = ["*.sh"]
+"perception.evaluation" = ["*.sh"]
+perception_2 = ["configs/*.yaml", "configs/*.sh", "configs/*.env", "scripts/**/*.sh", "*.sh"]
+"perception_2.utils" = ["*.json"]

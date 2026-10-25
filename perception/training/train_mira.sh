@@ -40,6 +40,8 @@ EPOCHS="${EPOCHS:-2}"
 SAVE_FREQ="${SAVE_FREQ:-120}"
 TEST_FREQ="${TEST_FREQ:-3}"
 PROJECT_NAME="${PROJECT_NAME:-mira}"
+TRAINER_LOGGER="${TRAINER_LOGGER:-[console]}"
+REWARD_FUNCTION_PATH="${REWARD_FUNCTION_PATH:-perception/training/reward_function.py}"
 
 cd "$REPO_ROOT"
 CMD=(python -m verl.trainer.main_ppo \
@@ -54,8 +56,8 @@ CMD=(python -m verl.trainer.main_ppo \
     data.image_key=images)
 
 if [[ "$DATASET_ADAPTIVE_RATIO" == "true" ]]; then
-    CMD+=(+data.custom_cls.path=perception/training/adaptive_dataset.py
-          +data.custom_cls.name=AdaptiveRatioDataset
+    CMD+=(data.custom_cls.path=perception/training/adaptive_dataset.py
+          data.custom_cls.name=AdaptiveRatioDataset
           +data.adaptive_target_ratio=2.0
           +data.adaptive_ema_alpha=0.1)
 fi
@@ -98,7 +100,7 @@ CMD+=(\
     "reward_model.rollout.tensor_model_parallel_size=$RM_TENSOR_PARALLEL_SIZE" \
     reward_model.num_workers=4 \
     trainer.critic_warmup=0 \
-    trainer.logger='[console,wandb]' \
+    "trainer.logger=$TRAINER_LOGGER" \
     "trainer.project_name=$PROJECT_NAME" \
     "trainer.experiment_name=$EXP_NAME" \
     trainer.val_before_train=False \
@@ -107,6 +109,7 @@ CMD+=(\
     "trainer.total_epochs=$EPOCHS" \
     "trainer.save_freq=$SAVE_FREQ" \
     "trainer.test_freq=$TEST_FREQ" \
+    "trainer.default_local_dir=$OUTPUT_DIR/checkpoints" \
     +trainer.enable_trigger=True \
     +trainer.trigger_enable_schedule=True \
     +trainer.trigger_mode=part \
@@ -116,7 +119,7 @@ CMD+=(\
     +trainer.trigger_file_path=perception/utils/triggers.json \
     "trainer.validation_data_dir=$OUTPUT_DIR/val" \
     "trainer.rollout_data_dir=$OUTPUT_DIR/train" \
-    custom_reward_function.path=perception/training/reward_function.py \
+    "custom_reward_function.path=$REWARD_FUNCTION_PATH" \
     custom_reward_function.name=compute_score \
     "$@")
 

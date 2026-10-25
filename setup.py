@@ -16,7 +16,7 @@
 import os
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 
 version_folder = os.path.dirname(os.path.join(os.path.abspath(__file__)))
 
@@ -80,7 +80,11 @@ setup(
     name="verl",
     version=__version__,
     package_dir={"": "."},
-    packages=find_packages(where="."),
+    packages=find_namespace_packages(
+        where=".",
+        include=["verl", "verl.*", "perception", "perception.*", "perception_2", "perception_2.*"],
+        exclude=["*.__pycache__", "*.__pycache__.*"],
+    ),
     url="https://github.com/volcengine/verl",
     license="Apache 2.0",
     author="Bytedance - Seed - MLSys",
@@ -90,7 +94,9 @@ setup(
     extras_require=extras_require,
     package_data={
         "": ["version/*"],
-        "verl": ["trainer/config/*.yaml"],
+        "verl": ["py.typed", "version/*", "**/*.yaml", "**/*.json", "**/*.jinja"],
+        "perception": ["**/*.json", "**/*.yaml", "**/*.sh"],
+        "perception_2": ["**/*.json", "**/*.yaml", "**/*.sh", "**/*.env"],
     },
     include_package_data=True,
     long_description=long_description,

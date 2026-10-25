@@ -7,7 +7,7 @@ based on per-step advantage dead rates.
 Usage in training config yaml:
     data:
       custom_cls:
-        path: perception/utils/adaptive_dataset.py
+        path: perception/training/adaptive_dataset.py
         name: AdaptiveRatioDataset
       adaptive_target_ratio: 2.0    # target effective normal:wrong ratio
       adaptive_ema_alpha: 0.1       # EMA smoothing coefficient
@@ -376,11 +376,11 @@ class AdaptiveRatioDataset(RLHFDataset):
 # parent-class method (e.g. _build_messages).
 #
 # Fix: register this module under its real importable path so every worker can
-# do `from perception.utils.adaptive_dataset import AdaptiveRatioDataset`
+# do `from perception.training.adaptive_dataset import AdaptiveRatioDataset`
 # and get the fully-inherited class back.
 import sys as _sys
 
-_IMPORTABLE = "perception.utils.adaptive_dataset"
+_IMPORTABLE = "perception.training.adaptive_dataset"
 _this_module = _sys.modules.get(__name__)
 if _this_module is not None and _IMPORTABLE not in _sys.modules:
     _sys.modules[_IMPORTABLE] = _this_module

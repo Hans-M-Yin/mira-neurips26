@@ -1,19 +1,80 @@
-# Local credentials and environment
+# Credentials and machine-local configuration
 .env
 .env.*
 !.env.example
+/Notice*
+/.aws/
+/.codex/
+/.agents/
+/.gemini/
 
-# Training/evaluation outputs and private data/checkpoints
+# Checkpoints, datasets, archives, and generated experiment artifacts
+checkpoints/
+merged_checkpoint*/
 outputs/
+rollout_saved*/
 rollouts_saved/
 wandb/
-results/
+logs/
+log/
+results*/
 eval_results/
-checkpoints/
+eval_*/
+metrics/
+*.log
+*.out
 *.jsonl
+*.csv
+*.tsv
 *.parquet
+*.arrow
 *.safetensors
 *.pt
 *.pth
+*.ckpt
+*.bin
+*.h5
+*.npy
+*.npz
+*.tar
+*.tar.gz
+*.zip
+/.checkpoint_archive/
+/.dataset_archive/
+/commands*.txt
+/Final_no_correction_FINAL*.pdf
+/_experiments/
+/synthesis/ignore/
+
+# Only preprocessing source is public; data and generated metadata stay local.
+/_preprocessed_dataset/*
+!/_preprocessed_dataset/*.py
+!/_preprocessed_dataset/README.md
+
+# JSON outputs stay private. The following small JSON files are static config.
+*.json
+!perception/utils/triggers.json
+!perception_2/utils/triggers.json
+!examples/sglang_multiturn/config/tool_config/mcp_server.json
+!tests/workers/rollout/resource/tool_configs/mcp_server.json
+!tests/special_e2e/ppo_trainer/expert_parallel/qwen3moe_minimal.json
+!tests/special_e2e/ppo_trainer/expert_parallel/qwen2moe_minimal.json
+
+# Python/build/editor caches
 __pycache__/
 *.py[cod]
+*.so
+.venv/
+venv/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+docs/_build/
+.coverage*
+.idea/
+.vscode/
+.DS_Store
