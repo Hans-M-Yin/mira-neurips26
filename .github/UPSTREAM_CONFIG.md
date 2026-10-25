@@ -1,4 +1,4 @@
-# Upstream project configuration
+# Upstream VERL configuration
 
 The upstream VERL CI definitions are preserved in `upstream-workflows/` for reference.
 They target the upstream project's runners, registries, and deployment services.
