@@ -88,9 +88,15 @@ def add_correction_trigger(
         mode: Literal['all', 'part'],
         enable_schedule: bool
 ):
+    """Add reflection triggers, using exactly N/2 rollouts in unscheduled part mode."""
     assert len(batch) % rollout_n == 0, f"Repeated samples ({len(batch)}) can't be divided by rollout_n ({rollout_n})"
+    if mode == 'part' and not enable_schedule and rollout_n % 2:
+        raise ValueError("Fixed half-group triggering requires an even rollout_n.")
     num_samples = len(batch) // rollout_n
-    trigger_prob = trigger_schedule_policy(global_step, total_step, start_ratio, final_ratio, warmup_ratio)
+    trigger_prob = (
+        trigger_schedule_policy(global_step, total_step, start_ratio, final_ratio, warmup_ratio)
+        if enable_schedule else 0.5
+    )
     new_batch = batch
     if mode == 'all':
         # Whether all rollout in one sample use triggers, or none uses triggers
@@ -98,7 +104,7 @@ def add_correction_trigger(
             start_idx = i * rollout_n
             if new_batch.non_tensor_batch['extra_info'][start_idx]['type'] != 1:
                 continue
-            if enable_schedule and random.random() < trigger_prob:
+            if random.random() < trigger_prob:
 
                 end_idx = start_idx + rollout_n
                 # for j in range(start_idx, end_idx):

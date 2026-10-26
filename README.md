@@ -146,6 +146,8 @@ bash mira/training/train_qwen3_vl_8b.sh
 
 The shared launcher defaults to one node with **8 GPUs**, FSDP2, asynchronous vLLM rollouts, and `Qwen/Qwen3-VL-32B-Instruct` as the training reward model. Other defaults include batch size `128`, `8` rollouts per prompt, learning rate `1e-6`, and KL coefficient `0.005`.
 
+Reflection scheduling is disabled: exactly **N/2 rollouts per deceptive-context example** receive a trigger throughout training (`4` of `8` by default). `ROLLOUT_N` must be even for this fixed half-group recipe.
+
 Override settings through environment variables such as `N_GPUS`, `RM_MODEL_PATH`, `TRAIN_BATCH_SIZE`, `MAX_RESPONSE_LENGTH`, `TENSOR_PARALLEL_SIZE`, and `RM_TENSOR_PARALLEL_SIZE`. Resource settings must accommodate both the actor and the reward model. Environment variables take precedence over recipe defaults; additional Hydra overrides can be appended to the command.
 
 Inspect the resolved configuration without starting training, after setting both data paths:

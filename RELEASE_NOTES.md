@@ -35,6 +35,17 @@ reflection triggers, or multilingual examples remains unchanged. The upstream
 Chinese documentation is also retained as documentation, separately from code
 annotations. The cleanup does not change these model inputs or the training logic.
 
+## Fixed reflection groups
+
+The current main and Qwen3-VL release recipes disable reflection scheduling and
+apply triggers to exactly half of each deceptive-context sample's rollout group
+throughout training. The default rollout count is eight, so four continuations
+receive triggers. Fixed half-group mode requires an even rollout count. The KL
+loss coefficient defaults to `0.005`.
+
+The trigger helper now honors the scheduling switch in partial-group mode.
+Historical configurations can still explicitly enable the existing schedule.
+
 ## Software environment observed during packaging
 
 The local packaging/validation environment uses Python 3.11, PyTorch 2.8.0,
@@ -83,6 +94,8 @@ the datasets are included individually; their generated output remains ignored.
 - Key trainer, worker, reward, sampler, and model-merger modules import from this checkout.
 - The existing rollout-correction tests pass: 11 tests, with one pre-existing pytest
   warning about a test returning a value.
+- The 21 MIRA trigger regression cases pass, covering fixed half-groups across
+  training steps, clean samples, prompt synchronization, and explicit scheduling.
 - A local MIRA trigger check preserves clean samples and inserts triggers into the
   expected subset of augmented rollouts, synchronizing their raw prompts.
 - The data-preprocessing command exposes its help without requiring a private service.

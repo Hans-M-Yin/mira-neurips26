@@ -666,6 +666,7 @@ tests/trainer/config/test_legacy_config_on_cpu.py
 tests/trainer/ppo/__init__.py
 tests/trainer/ppo/test_core_algos_on_cpu.py
 tests/trainer/ppo/test_metric_utils_on_cpu.py
+tests/trainer/ppo/test_mira_triggers.py
 tests/trainer/ppo/test_rollout_corr.py
 tests/trainer/ppo/test_rollout_corr_integration.py
 tests/utils/_test_module.py
