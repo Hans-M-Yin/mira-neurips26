@@ -46,6 +46,7 @@ MANIFEST.in
 README.md
 RELEASE_MANIFEST.txt
 RELEASE_NOTES.md
+assets/mira_pipeline.png
 docker/Dockerfile.isaaclab230
 docker/Dockerfile.stable.sglang
 docker/Dockerfile.stable.vllm

@@ -10,6 +10,10 @@ This repository includes the **complete VERL-based training framework**, data-co
 
 ## Method
 
+![MIRA pipeline: deceptive-context construction and reinforcement learning with intra-group reflection triggers](assets/mira_pipeline.png)
+
+*Figure 1. Overview of MIRA: deceptive visual context construction (top) and reinforcement learning with intra-group reflection triggers (bottom).*
+
 1. **Construct deceptive context.** Generate question-relevant image descriptions and edit selected visual facts, retaining the correct/incorrect fact pairs.
 2. **Verify the perturbation.** Keep contexts for which a stronger verifier answers correctly with the correct description and incorrectly with the deceptive description.
 3. **Train visual self-correction.** Present the deceptive context as an assistant prefill, add reflection triggers to a subset of each augmented example's rollout group, and optimize the policy with GRPO.
@@ -40,6 +44,7 @@ mira/
   evaluation/        Benchmark inference, answer extraction, and scoring
   configs/           Reflection-trigger phrases
   legacy/            Historical research implementations
+assets/              Paper figures used in this README
 verl/                Complete framework, workers, rollouts, and utilities
 tests/               Framework tests
 examples/            Framework examples
