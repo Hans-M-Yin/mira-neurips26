@@ -82,42 +82,28 @@ source .env
 set +a
 ```
 
-The scripts do not load `.env` automatically. Training uses `TRAIN_FILE`, `VAL_FILE`, `MODEL_PATH`, and `RM_MODEL_PATH`; evaluation uses `JUDGE_API_KEY` and `JUDGE_API_BASE_URL`. Data construction uses a caption service plus `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT`. Populated `.env` files are ignored by Git.
+The scripts do not load `.env` automatically. Training uses `TRAIN_FILE`, `VAL_FILE`, `MODEL_PATH`, and `RM_MODEL_PATH`; evaluation uses `JUDGE_API_KEY` and `JUDGE_API_BASE_URL`. Populated `.env` files are ignored by Git.
 
 ## Data preparation
 
-### Prepared data
-
-Set the paths to your prepared MIRA Parquet files:
+Download the [released main training data](https://huggingface.co/datasets/hansQAQ/dataset-archive-private/blob/main/training/main_augmented/train.parquet) (**28,643 examples**). The file is already prepared in the MIRA training format. The Hugging Face repository is currently private, so use an authorized account:
 
 ```bash
-export TRAIN_FILE=/absolute/path/to/train.parquet
-export VAL_FILE=/absolute/path/to/test.parquet
+hf auth login  # If not already authenticated
+hf download hansQAQ/dataset-archive-private \
+  training/main_augmented/train.parquet \
+  --repo-type dataset \
+  --local-dir ./data/mira
 ```
 
-The builder names its held-out validation file `test.parquet`; this is separate from the final benchmark test sets. Training expects VERL's multimodal fields (`prompt`, `images`, and `reward_model.ground_truth`) plus MIRA's `extra_info`: sample type, question, captions, `modify_info`, and `num_modify`. Preserve the assistant prefill and fact-edit metadata when converting data for the correction reward.
-
-### Construct deceptive-context data
-
-The [data builder](mira/data/preparation/build_training_data.py) accepts a Hugging Face dataset identifier or a local `Dataset.save_to_disk` directory with `problem`, `answer`, and `images` fields. It generates captions with an OpenAI-compatible multimodal service, then edits and verifies them using a configured Azure deployment.
-
-After starting your caption service and configuring Azure in `.env`:
+Set the training file path and provide a separate, compatible validation Parquet file, which is required by the training launcher:
 
 ```bash
-python -m mira.data.preparation.build_training_data \
-  --dataset_path /absolute/path/to/source_dataset \
-  --local-api-url http://localhost:8000/v1 \
-  --target_model YOUR_SERVED_CAPTION_MODEL \
-  --model YOUR_AZURE_DEPLOYMENT \
-  --save_dir ./outputs/data \
-  --experiment_name mira \
-  --seed 42 \
-  --test_size 0.02
+export TRAIN_FILE="$(pwd)/data/mira/training/main_augmented/train.parquet"
+export VAL_FILE=/absolute/path/to/validation.parquet
 ```
 
-The script prints a timestamped directory containing `train.parquet`, `test.parquet`, and construction metadata. Point the training variables to those files. Use `--help` for resuming, prepared-Parquet input, concurrency, and rate limits.
-
-For Qwen3 experiments, [`select_virl_mmk_by_rollout.py`](mira/data/preparation/select_virl_mmk_by_rollout.py) selects samples from ViRL-39K/MMK12 using repeated rollouts and a correctness judge. See the [data preparation guide](mira/data/preparation/README.md) for the available utilities. Optional selection, adaptive sampling, and `augment_dataset.py` change the training mixture; the latter adds clean counterparts of augmented samples.
+Training expects VERL's multimodal fields (`prompt`, `images`, and `reward_model.ground_truth`) plus MIRA's `extra_info`: sample type, question, captions, `modify_info`, and `num_modify`.
 
 ## Training
 
