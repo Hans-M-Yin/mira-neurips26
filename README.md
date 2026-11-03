@@ -2,11 +2,9 @@
 
 **🎉 Official implementation · NeurIPS 2026**
 
-[📄 Paper](https://neurips.cc/virtual/2026/poster/153690) · [🤗 Model](https://huggingface.co/hansQAQ/checkpoint-main-private) · [🤗 Training Data](https://huggingface.co/datasets/hansQAQ/dataset-archive-private/blob/main/training/main_augmented/train.parquet) · [📊 Results](#main-results) · [📝 Citation](#citation)
+[📄 Paper](https://neurips.cc/virtual/2026/poster/153690) · [🤗 Model](https://huggingface.co/hansQAQ/MIRA-7B) · [🤗 Training Data](https://huggingface.co/datasets/hansQAQ/MIRA-RL-Dataset) · [📊 Results](#main-results) · [📝 Citation](#citation)
 
 [🧠 Method](#method) · [🛠️ Installation](#installation) · [🗂️ Data Preparation](#data-preparation) · [🚀 Training](#training) · [🧪 Evaluation](#evaluation)
-
-> 🔒 The model and training data are currently in private Hugging Face repositories and require an authorized account.
 
 MIRA (**MIsleading-context Robustness Augmentation**) trains vision-language models to recover from misleading visual interpretations during reasoning. It combines deceptive context construction, group-wise reflection triggers, and correction-aware reinforcement learning, without human-annotated reasoning traces or an additional supervised cold-start stage.
 
@@ -86,11 +84,10 @@ The scripts do not load `.env` automatically. Training uses `TRAIN_FILE`, `VAL_F
 
 ## Data preparation
 
-Download the [released main training data](https://huggingface.co/datasets/hansQAQ/dataset-archive-private/blob/main/training/main_augmented/train.parquet) (**28,643 examples**). The file is already prepared in the MIRA training format. The Hugging Face repository is currently private, so use an authorized account:
+Download the [released main training data](https://huggingface.co/datasets/hansQAQ/MIRA-RL-Dataset/blob/main/training/main_augmented/train.parquet) (**28,643 examples**). The file is already prepared in the MIRA training format:
 
 ```bash
-hf auth login  # If not already authenticated
-hf download hansQAQ/dataset-archive-private \
+hf download hansQAQ/MIRA-RL-Dataset \
   training/main_augmented/train.parquet \
   --repo-type dataset \
   --local-dir ./data/mira
@@ -204,12 +201,12 @@ Other [`judge_*.py` scripts](mira/evaluation) provide the corresponding benchmar
 
 ## Model and data availability
 
-| Artifact | Hugging Face | Access |
-|---|---|---|
-| 🤖 Main checkpoint | [MIRA Qwen2.5-VL-7B](https://huggingface.co/hansQAQ/checkpoint-main-private) | 🔒 Private |
-| 📦 Main training data | [Parquet file · 28,643 examples](https://huggingface.co/datasets/hansQAQ/dataset-archive-private/blob/main/training/main_augmented/train.parquet) | 🔒 Private |
+| Artifact | Hugging Face |
+|---|---|
+| 🤖 Main checkpoint | [MIRA-7B](https://huggingface.co/hansQAQ/MIRA-7B) |
+| 📦 Main training data | [MIRA-RL-Dataset · 28,643 examples](https://huggingface.co/datasets/hansQAQ/MIRA-RL-Dataset) |
 
-Both links require an authorized Hugging Face account. The training file is stored in the private data archive. Dataset and model access terms are governed by their providers.
+Dataset and model access terms are governed by their providers.
 
 Full experiment JSON/JSONL, predictions, metrics records, logs, checkpoints, datasets, and credentials are excluded from public source control. See the [release notes](RELEASE_NOTES.md) and [file manifest](RELEASE_MANIFEST.txt) for the release scope.
 
