@@ -1,8 +1,12 @@
 # MIRA: Reinforcing Multimodal Reasoning via Deceptive Contextual Augmentation
 
-**Official implementation · NeurIPS 2026**
+**🎉 Official implementation · NeurIPS 2026**
 
-[Paper](https://neurips.cc/virtual/2026/poster/153690) · [Method](#method) · [Results](#main-results) · [Installation](#installation) · [Data](#data-preparation) · [Training](#training) · [Evaluation](#evaluation) · [Citation](#citation)
+[📄 Paper](https://neurips.cc/virtual/2026/poster/153690) · [🤗 Model](https://huggingface.co/hansQAQ/checkpoint-main-private) · [🤗 Training Data](https://huggingface.co/datasets/hansQAQ/dataset-archive-private/blob/main/training/main_augmented/train.parquet) · [📊 Results](#main-results) · [📝 Citation](#citation)
+
+[🧠 Method](#method) · [🛠️ Installation](#installation) · [🗂️ Data Preparation](#data-preparation) · [🚀 Training](#training) · [🧪 Evaluation](#evaluation)
+
+> 🔒 The model and training data are currently in private Hugging Face repositories and require an authorized account.
 
 MIRA (**MIsleading-context Robustness Augmentation**) trains vision-language models to recover from misleading visual interpretations during reasoning. It combines deceptive context construction, group-wise reflection triggers, and correction-aware reinforcement learning, without human-annotated reasoning traces or an additional supervised cold-start stage.
 
@@ -214,12 +218,12 @@ Other [`judge_*.py` scripts](mira/evaluation) provide the corresponding benchmar
 
 ## Model and data availability
 
-| Artifact | Hugging Face repository | Access |
+| Artifact | Hugging Face | Access |
 |---|---|---|
-| MIRA Qwen2.5-VL-7B checkpoint | [hansQAQ/checkpoint-main-private](https://huggingface.co/hansQAQ/checkpoint-main-private) | Private |
-| Training data archive | [hansQAQ/dataset-archive-private](https://huggingface.co/datasets/hansQAQ/dataset-archive-private) | Private |
+| 🤖 Main checkpoint | [MIRA Qwen2.5-VL-7B](https://huggingface.co/hansQAQ/checkpoint-main-private) | 🔒 Private |
+| 📦 Main training data | [Parquet file · 28,643 examples](https://huggingface.co/datasets/hansQAQ/dataset-archive-private/blob/main/training/main_augmented/train.parquet) | 🔒 Private |
 
-Both repositories are currently private and require an authorized Hugging Face account. The main training file is `training/main_augmented/train.parquet` in the data archive. Dataset and model access terms are governed by their providers.
+Both links require an authorized Hugging Face account. The training file is stored in the private data archive. Dataset and model access terms are governed by their providers.
 
 Full experiment JSON/JSONL, predictions, metrics records, logs, checkpoints, datasets, and credentials are excluded from public source control. See the [release notes](RELEASE_NOTES.md) and [file manifest](RELEASE_MANIFEST.txt) for the release scope.
 
