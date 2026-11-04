@@ -2,7 +2,7 @@
 
 **🎉 Official implementation · NeurIPS 2026**
 
-[📄 Paper](https://neurips.cc/virtual/2026/poster/153690) · [🤗 Model](https://huggingface.co/hansQAQ/MIRA-7B) · [🤗 Training Data](https://huggingface.co/datasets/hansQAQ/MIRA-RL-Dataset) · [📊 Results](#main-results) · [📝 Citation](#citation)
+[📄 arXiv](https://arxiv.org/abs/2611.03087) · [🎓 NeurIPS](https://neurips.cc/virtual/2026/poster/153690) · [🤗 Model](https://huggingface.co/hansQAQ/MIRA-7B) · [🤗 Training Data](https://huggingface.co/datasets/hansQAQ/MIRA-RL-Dataset) · [📊 Results](#main-results) · [📝 Citation](#citation)
 
 [🧠 Method](#method) · [🛠️ Installation](#installation) · [🗂️ Data Preparation](#data-preparation) · [🚀 Training](#training) · [🧪 Evaluation](#evaluation)
 
@@ -34,7 +34,7 @@ Paper-reported accuracy (%) with Qwen2.5-VL-7B as the backbone. MIRA improves th
 | Qwen2.5-VL-7B | 68.2 | 46.7 | 24.3 | 61.4 | 38.5 | 65.7 | 30.0 | 47.8 |
 | **MIRA** | **75.2** | **53.8** | **29.0** | **70.7** | **41.0** | **69.8** | **30.6** | **52.9** |
 
-The Average column follows the paper's reported aggregate. The runner scores the two MMMU-Pro subsets separately. See the [paper](https://neurips.cc/virtual/2026/poster/153690) for aggregation details, comparisons, and ablations. Qwen3-VL launchers are included as separate experiment recipes.
+The Average column follows the paper's reported aggregate. The runner scores the two MMMU-Pro subsets separately. See the [paper](https://arxiv.org/abs/2611.03087) for aggregation details, comparisons, and ablations. Qwen3-VL launchers are included as separate experiment recipes.
 
 ## Repository structure
 
@@ -169,14 +169,14 @@ The unified runner shares one vLLM instance across benchmarks and runs inference
 
 ```bash
 python -m mira.evaluation.evaluation_all \
-  --checkpoint ./outputs/merged_mira \
+  --checkpoint hansQAQ/MIRA-7B \
   --benchmarks mathvista,mathverse,mathvision,wemath \
   --tensor-parallel-size 2 \
   --judge-model-name gpt-4o \
   --out-dir ./outputs/evaluation
 ```
 
-`--checkpoint` also accepts an accessible Hugging Face model identifier or merged Qwen3-VL checkpoint. For the complete main-paper evaluation, use this benchmark list and set `FREAK_DATASET_ID` to a dataset repository you can access **before starting the process**:
+`--checkpoint` also accepts a local merged model directory or another accessible Hugging Face model identifier, including a Qwen3-VL checkpoint. For the complete main-paper evaluation, use this benchmark list and set `FREAK_DATASET_ID` to a dataset repository you can access **before starting the process**:
 
 ```text
 mathvista,mathverse,mathvision,wemath,mmmu_pro_10,mmmu_pro_vision,hallusionbench,freak
@@ -219,7 +219,10 @@ If you use MIRA in your research, please cite the paper:
   title     = {{MIRA}: Reinforcing Multimodal Reasoning via Deceptive Contextual Augmentation},
   booktitle = {Advances in Neural Information Processing Systems},
   year      = {2026},
-  url       = {https://neurips.cc/virtual/2026/poster/153690}
+  url       = {https://arxiv.org/abs/2611.03087},
+  eprint    = {2611.03087},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CV}
 }
 ```
 
